@@ -1,0 +1,175 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 6.3%;
+    --foreground: 0 0% 96.1%;
+    --card: 0 0% 9%;
+    --popover: 0 0% 10.6%;
+    --primary: 348 83.3% 47.1%;
+    --primary-foreground: 0 0% 100%;
+    --muted: 0 0% 14.1%;
+    --muted-foreground: 0 0% 58%;
+    --border: 0 0% 20.4%;
+    --input: 0 0% 40%;
+    --ring: 348 83.3% 47.1%;
+    --brand-soft: 348 83.3% 47.1% / 0.14;
+    --brand-border: 348 83.3% 47.1% / 0.45;
+    --surface-raised: 0 0% 14.1%;
+    --surface-hover: 0 0% 16.5%;
+  }
+
+  * { box-sizing: border-box; }
+
+  html,
+  body,
+  #root {
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    overflow: hidden;
+    background: transparent !important;
+    color: hsl(var(--foreground));
+    pointer-events: none;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+}
+
+.chat-shell {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  width: min(480px, 38vw);
+}
+
+.message-feed {
+  display: flex;
+  max-height: 28vh;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden auto;
+  padding: 2px 4px 8px 2px;
+  scrollbar-color: hsl(var(--input)) transparent;
+  transition: opacity 150ms ease-in;
+}
+
+.message-feed.hidden { opacity: 0; }
+.message-feed.visible { opacity: 1; }
+
+.message-row {
+  display: flex;
+  min-height: 42px;
+  gap: 10px;
+  border: 1px solid hsl(var(--border) / 0.9);
+  border-left: 3px solid hsl(var(--primary));
+  border-radius: 10px;
+  background: hsl(var(--card) / 0.94);
+  padding: 8px 10px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 28%);
+}
+
+.message-row.compatibility { border-left-color: hsl(var(--border)); }
+.message-row.type-say { border-left-color: hsl(var(--border)); }
+.message-row.type-say .message-icon { background: hsl(var(--muted)); color: hsl(var(--muted-foreground)); }
+.message-row.type-ooc { border-left-color: hsl(var(--muted-foreground) / .55); }
+.message-row.type-ooc .message-icon { background: hsl(var(--muted)); color: hsl(var(--muted-foreground)); }
+.message-row.type-ooc .message-text { color: hsl(var(--muted-foreground)); }
+
+.message-icon {
+  display: flex;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: hsl(var(--brand-soft));
+  color: hsl(var(--foreground));
+}
+
+.message-copy { min-width: 0; flex: 1; }
+.message-meta { display: flex; align-items: baseline; gap: 7px; line-height: 16px; }
+.message-type { color: hsl(var(--foreground)); font-size: 11px; font-weight: 600; letter-spacing: .025em; }
+.message-author { overflow: hidden; color: hsl(var(--muted-foreground)); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.message-text { overflow-wrap: anywhere; color: hsl(var(--foreground)); font-size: 14px; line-height: 19px; }
+.message-text.action { font-style: italic; }
+
+.composer {
+  position: relative;
+  margin-top: 6px;
+  pointer-events: none;
+}
+
+.input-row {
+  display: flex;
+  height: 40px;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid hsl(var(--input));
+  border-radius: 10px;
+  background: hsl(var(--background) / 0.98);
+  padding: 0 12px;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 42%);
+}
+
+.input-row:focus-within {
+  border-color: hsl(var(--brand-border));
+  box-shadow: 0 0 0 2px hsl(var(--ring) / .55), 0 12px 32px rgb(0 0 0 / 42%);
+}
+
+.input-row > svg { flex: 0 0 auto; color: hsl(var(--muted-foreground)); }
+.input-row input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: hsl(var(--foreground));
+  font: inherit;
+  font-size: 14px;
+}
+.input-row input::placeholder { color: hsl(var(--muted-foreground)); }
+
+kbd {
+  border: 1px solid hsl(var(--border));
+  border-radius: 4px;
+  background: hsl(var(--surface-raised));
+  padding: 1px 5px;
+  color: hsl(var(--muted-foreground));
+  font: 500 10px/15px "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+.suggestion-panel {
+  max-height: 48vh;
+  margin-top: 6px;
+  overflow: hidden auto;
+  border: 1px solid hsl(var(--border));
+  border-radius: 10px;
+  background: hsl(var(--popover) / 0.98);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 42%);
+  padding: 4px;
+}
+
+.suggestion-row {
+  min-height: 42px;
+  border-left: 3px solid transparent;
+  border-radius: 6px;
+  padding: 6px 9px;
+}
+.suggestion-row.selected {
+  border-left-color: hsl(var(--primary));
+  background: hsl(var(--brand-soft));
+}
+.signature { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: 6px; }
+.command-name { color: hsl(var(--foreground)); font: 600 13px/18px "SFMono-Regular", Consolas, monospace; }
+.argument { color: hsl(var(--muted-foreground)); font: 500 12px/18px "SFMono-Regular", Consolas, monospace; }
+.argument.active { color: hsl(var(--foreground)); text-decoration: underline; text-decoration-color: hsl(var(--primary)); text-underline-offset: 3px; }
+.suggestion-help { overflow: hidden; margin-top: 1px; color: hsl(var(--muted-foreground)); font-size: 12px; line-height: 17px; text-overflow: ellipsis; white-space: nowrap; }
+.suggestion-state { padding: 10px; color: hsl(var(--muted-foreground)); font-size: 12px; text-align: center; }
+.suggestion-footer { display: flex; align-items: center; justify-content: flex-end; gap: 5px; border-top: 1px solid hsl(var(--border)); margin: 4px -4px -4px; padding: 6px 9px; color: hsl(var(--muted-foreground)); font-size: 10px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .message-feed { transition: none; }
+}
