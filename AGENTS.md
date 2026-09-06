@@ -10,7 +10,8 @@ keyboard autocomplete.
 The resource owns its own NUI frame. Use raw `SendNUIMessage`,
 `RegisterNUICallback`, and `SetNuiFocus` here; `QB.nui.*` targets qblib's frame.
 Pure qblib APIs such as `QB.keybind`, `QB.commands`, `QB.callback`,
-`QB.distance`, `QB.drawing`, and `QB.theme` remain appropriate.
+`QB.distance` and `QB.drawing` remain appropriate. Theme transport comes from
+the imported qbtheme bridge.
 
 ## Input and loops
 

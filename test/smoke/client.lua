@@ -7,6 +7,7 @@ local netHandlers, eventHandlers, nuiCallbacks = {}, {}, {}
 local nuiMessages, focusCalls, serverEvents, executed = {}, {}, {}, {}
 local keybind, clock, thread = nil, 1000, nil
 local otherNuiFocused = false
+local themeRefreshes = 0
 
 _G.RegisterNetEvent = function(name, cb)
     netHandlers[name] = netHandlers[name] or {}
@@ -42,6 +43,7 @@ end
 
 local ownExports = {}
 _G.exports = setmetatable({}, { __call = function(_, name, fn) ownExports[name] = fn end })
+_G.QBTheme = { refresh = function() themeRefreshes = themeRefreshes + 1 end }
 
 local drawCalls = {}
 _G.QB = {
@@ -68,7 +70,6 @@ _G.QB = {
         }
     end },
     drawing = { text3d = function(coords, text) drawCalls[#drawCalls + 1] = { coords = coords, text = text } end },
-    theme = { tokens = function() return { primary = '1 2% 3%' } end },
     callback = { trigger = function() return { { value = 'water' } } end },
 }
 
@@ -96,12 +97,13 @@ H.test('T is registered through qblib without control polling', function()
     H.falsy(sourceText:find('IsControlJustPressed', 1, true))
 end)
 
-H.test('ready handshake pushes theme/config and completes a pending open', function()
+H.test('ready handshake refreshes qbtheme/config and completes a pending open', function()
     keybind.handler()
     H.equal(#focusCalls, 0)
     nuiCallbacks['qbchat:ready']({}, function() end)
     H.equal(focusCalls[#focusCalls][1], true)
-    H.truthy(latestAction('qbchat:init').data.theme)
+    H.equal(themeRefreshes, 1)
+    H.falsy(latestAction('qbchat:init').data.theme)
     H.equal(serverEvents[#serverEvents].name, 'chat:init')
     H.equal(latestAction('qbchat:suggestions').data[1].name, '/help')
 end)

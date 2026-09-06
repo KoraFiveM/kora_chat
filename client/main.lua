@@ -198,10 +198,9 @@ RegisterNUICallback('qbchat:ready', function(_, cb)
     nuiReady = true
     cb({ ok = true })
 
-    local ok, tokens = pcall(QB.theme.tokens)
+    QBTheme.refresh()
     send('qbchat:init', {
         config = Config.chat,
-        theme = ok and tokens or nil,
     })
     refreshNativeCommands()
     TriggerServerEvent('chat:init')

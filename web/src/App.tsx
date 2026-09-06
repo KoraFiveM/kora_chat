@@ -151,13 +151,8 @@ export default function App() {
     })
   }, [])
 
-  useNuiEvent<ChatInit>("qbchat:init", ({ config: incoming, theme }) => {
+  useNuiEvent<ChatInit>("qbchat:init", ({ config: incoming }) => {
     if (incoming) setConfig((current) => ({ ...current, ...incoming }))
-    if (theme) {
-      for (const [key, token] of Object.entries(theme)) {
-        if (typeof token === "string") document.documentElement.style.setProperty(`--${key}`, token)
-      }
-    }
   })
   useNuiEvent<ChatMessage>("qbchat:message", pushMessage)
   useNuiEvent<Record<string, never>>("qbchat:open", () => {
