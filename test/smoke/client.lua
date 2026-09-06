@@ -4,6 +4,7 @@ package.path = scriptDir .. '../?.lua;' .. package.path
 local H = require('harness')
 
 local netHandlers, eventHandlers, nuiCallbacks = {}, {}, {}
+local stateBagHandlers = {}
 local nuiMessages, focusCalls, serverEvents, executed = {}, {}, {}, {}
 local keybind, clock, thread = nil, 1000, nil
 local otherNuiFocused = false
@@ -28,6 +29,8 @@ _G.GetRegisteredCommands = function()
 end
 _G.IsAceAllowed = function() return true end
 _G.GetCurrentResourceName = function() return 'qbchat' end
+_G.PlayerId = function() return 3 end
+_G.GetPlayerServerId = function() return 17 end
 _G.GetGameTimer = function() return clock end
 _G.SetTimeout = function(_, cb) cb() end
 _G.GetPlayerFromServerId = function() return 4 end
@@ -39,6 +42,10 @@ _G.CreateThread = function(fn)
     thread = coroutine.create(fn)
     local ok, err = coroutine.resume(thread)
     if not ok then error(err) end
+end
+_G.LocalPlayer = { state = { ['qbcore:loggedIn'] = true } }
+_G.AddStateBagChangeHandler = function(key, bag, cb)
+    stateBagHandlers[#stateBagHandlers + 1] = { key = key, bag = bag, callback = cb }
 end
 
 local ownExports = {}
@@ -87,6 +94,15 @@ local function latestAction(action)
     end
 end
 
+local function setLoggedIn(value)
+    LocalPlayer.state['qbcore:loggedIn'] = value
+    for _, handler in ipairs(stateBagHandlers) do
+        if handler.key == 'qbcore:loggedIn' then
+            handler.callback('player:17', 'qbcore:loggedIn', value)
+        end
+    end
+end
+
 H.test('T is registered through qblib without control polling', function()
     H.equal(keybind.name, 'qbchat_open')
     H.equal(keybind.key, 'T')
@@ -106,6 +122,37 @@ H.test('ready handshake refreshes qbtheme/config and completes a pending open', 
     H.falsy(latestAction('qbchat:init').data.theme)
     H.equal(serverEvents[#serverEvents].name, 'chat:init')
     H.equal(latestAction('qbchat:suggestions').data[1].name, '/help')
+end)
+
+H.test('chat input is enabled only while a character is logged in', function()
+    nuiCallbacks['qbchat:submit']({ cancelled = true }, function() end)
+    setLoggedIn(false)
+    local before = #focusCalls
+    keybind.handler()
+    H.equal(#focusCalls, before)
+
+    setLoggedIn(true)
+    keybind.handler()
+    H.equal(focusCalls[#focusCalls][1], true)
+
+    setLoggedIn(false)
+    H.equal(focusCalls[#focusCalls][1], false)
+    setLoggedIn(true)
+end)
+
+H.test('the HUD layout event updates and clamps the chat input offset', function()
+    -- The composer is in qbchat's NUI, but /hudlayout persists its position
+    -- in qbhud. This local event is the intentionally small bridge between
+    -- those two resource-owned frames.
+    fire('qbchat:setInputLayout', { x = 2, y = -2 })
+    local offset = latestAction('qbchat:inputOffset').data
+    H.equal(offset.x, 0.95)
+    H.equal(offset.y, -0.95)
+
+    fire('qbchat:setInputLayout', { x = 'bad', y = 0 })
+    offset = latestAction('qbchat:inputOffset').data
+    H.equal(offset.x, 0)
+    H.equal(offset.y, 0)
 end)
 
 H.test('T does not steal focus from another active NUI', function()

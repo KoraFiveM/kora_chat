@@ -7,7 +7,7 @@ import {
   Shield,
   Terminal,
 } from "lucide-react"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import {
   completeArgument,
   completeCommand,
@@ -105,8 +105,12 @@ export default function App() {
   const [dynamicValues, setDynamicValues] = useState<ValueSuggestion[]>([])
   const [loadingValues, setLoadingValues] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(0)
+  const [inputOffset, setInputOffset] = useState({ x: 0, y: 0 })
+  const [suggestionsAboveInput, setSuggestionsAboveInput] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const inputRowRef = useRef<HTMLDivElement>(null)
   const feedRef = useRef<HTMLDivElement>(null)
+  const suggestionPanelRef = useRef<HTMLDivElement>(null)
   const fadeTimer = useRef<number>()
   const requestGeneration = useRef(0)
 
@@ -153,6 +157,11 @@ export default function App() {
 
   useNuiEvent<ChatInit>("qbchat:init", ({ config: incoming }) => {
     if (incoming) setConfig((current) => ({ ...current, ...incoming }))
+  })
+  useNuiEvent<{ x?: unknown; y?: unknown }>("qbchat:inputOffset", (incoming) => {
+    const x = typeof incoming?.x === "number" && Number.isFinite(incoming.x) ? incoming.x : 0
+    const y = typeof incoming?.y === "number" && Number.isFinite(incoming.y) ? incoming.y : 0
+    setInputOffset({ x: Math.max(-0.95, Math.min(0.95, x)), y: Math.max(-0.95, Math.min(0.95, y)) })
   })
   useNuiEvent<ChatMessage>("qbchat:message", pushMessage)
   useNuiEvent<Record<string, never>>("qbchat:open", () => {
@@ -312,6 +321,29 @@ export default function App() {
     visibleCommands.length > 0 || exactSuggestion != null || loadingValues
   )
 
+  useLayoutEffect(() => {
+    const panel = suggestionPanelRef.current
+    const inputRow = inputRowRef.current
+    if (!panel || !inputRow || !showSuggestionPanel) {
+      setSuggestionsAboveInput(false)
+      return
+    }
+
+    const updatePosition = () => {
+      const inputBottom = inputRow.getBoundingClientRect().bottom
+      setSuggestionsAboveInput(inputBottom + 6 + panel.offsetHeight > window.innerHeight)
+    }
+
+    updatePosition()
+    window.addEventListener("resize", updatePosition)
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updatePosition)
+    observer?.observe(panel)
+    return () => {
+      window.removeEventListener("resize", updatePosition)
+      observer?.disconnect()
+    }
+  }, [dynamicValues.length, loadingValues, showSuggestionPanel, visibleCommands.length])
+
   return (
     <main className="chat-shell" data-types={Object.keys(types).length}>
       <section
@@ -323,8 +355,12 @@ export default function App() {
       </section>
 
       {open && (
-        <section className="composer" aria-label="Chat input">
-          <div className="input-row">
+        <section
+          className="composer"
+          aria-label="Chat input"
+          style={{ transform: `translate(${inputOffset.x * 100}vw, ${inputOffset.y * 100}vh)` }}
+        >
+          <div className="input-row" ref={inputRowRef}>
             <Terminal aria-hidden="true" size={16} />
             <input
               ref={inputRef}
@@ -340,7 +376,12 @@ export default function App() {
           </div>
 
           {showSuggestionPanel && (
-            <div className="suggestion-panel" role="listbox" aria-label="Command suggestions">
+            <div
+              className={`suggestion-panel ${suggestionsAboveInput ? "above-input" : ""}`}
+              ref={suggestionPanelRef}
+              role="listbox"
+              aria-label="Command suggestions"
+            >
               {visibleCommands.map((suggestion, index) => {
                 const activeArgument = parsed?.exact ? parsed.argumentIndex : 0
                 return (

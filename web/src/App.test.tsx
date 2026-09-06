@@ -23,6 +23,25 @@ describe("chat interactions", () => {
     expect(input).toHaveValue("/giveitem ")
   })
 
+  it("places suggestions above the input when they would overflow the viewport", async () => {
+    const bounds = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+      return {
+        bottom: this.classList.contains("input-row") ? window.innerHeight - 20 : 0,
+      } as DOMRect
+    })
+    render(<App />)
+    nui("qbchat:suggestionAdd", { name: "/giveitem", help: "Give item", params: [] })
+    nui("qbchat:open", {})
+    const input = await screen.findByLabelText("Chat message")
+    fireEvent.change(input, { target: { value: "/giv" } })
+    const panel = await screen.findByRole("listbox")
+    Object.defineProperty(panel, "offsetHeight", { configurable: true, value: 200 })
+    fireEvent(window, new Event("resize"))
+
+    await waitFor(() => expect(panel).toHaveClass("above-input"))
+    bounds.mockRestore()
+  })
+
   it("submits history and recalls it with ArrowUp", async () => {
     render(<App />)
     nui("qbchat:open", {})
@@ -43,6 +62,16 @@ describe("chat interactions", () => {
     await screen.findByText("System message")
     nui("qbchat:clear", {})
     await waitFor(() => expect(screen.queryByText("System message")).not.toBeInTheDocument())
+  })
+
+  it("moves only the chat composer when the HUD supplies an input offset", async () => {
+    const { container } = render(<App />)
+    nui("qbchat:open", {})
+    await screen.findByLabelText("Chat message")
+    act(() => nui("qbchat:inputOffset", { x: 0.25, y: -0.1 }))
+
+    await waitFor(() => expect(container.querySelector(".composer")).toHaveStyle({ transform: "translate(25vw, -10vh)" }))
+    expect(container.querySelector(".message-feed")).not.toHaveStyle({ transform: "translate(25vw, -10vh)" })
   })
 
   it("keeps only the newest two hundred received messages", () => {

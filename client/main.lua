@@ -4,11 +4,47 @@ local pendingOpen = false
 local overhead = {}
 local overheadThreadRunning = false
 local removedSuggestions = {}
+local inputOffset = { x = 0, y = 0 }
+local LOGIN_STATE = 'qbcore:loggedIn'
+-- This is replicated by qbcore and survives a qbchat restart, unlike the
+-- legacy load/unload events.  A missing state means character select/loading,
+-- where chat must remain unavailable.
+local chatEnabled = LocalPlayer and LocalPlayer.state[LOGIN_STATE] == true or false
 
 if SetTextChatEnabled then SetTextChatEnabled(false) end
 
 local function send(action, data)
     SendNUIMessage({ action = action, data = data })
+end
+
+-- The HUD owns the persisted layout because /hudlayout is its editor, while
+-- this resource owns the composer that consumes this one offset. Clamp again
+-- at this boundary: local events are an integration surface, not trusted UI
+-- input, and invalid CSS values must never reach the browser.
+local function setInputOffset(offset)
+    if type(offset) ~= 'table' then
+        inputOffset = { x = 0, y = 0 }
+    else
+        local x, y = tonumber(offset.x), tonumber(offset.y)
+        if not x or x ~= x or not y or y ~= y then
+            inputOffset = { x = 0, y = 0 }
+        else
+            inputOffset = {
+                x = math.max(-0.95, math.min(0.95, x)),
+                y = math.max(-0.95, math.min(0.95, y)),
+            }
+        end
+    end
+
+    if nuiReady then send('qbchat:inputOffset', inputOffset) end
+end
+
+AddEventHandler('qbchat:setInputLayout', setInputOffset)
+
+local function loadHudInputOffset()
+    if type(GetResourceState) ~= 'function' or GetResourceState('qbhud') ~= 'started' then return end
+    local ok, layout = pcall(function() return exports['qbhud']:getLayout() end)
+    if ok and type(layout) == 'table' then setInputOffset(layout.offsets and layout.offsets.chatInput) end
 end
 
 local function provideExport(identity, name, fn)
@@ -37,7 +73,18 @@ local function closeInput()
     send('qbchat:close', {})
 end
 
+local function setChatEnabled(enabled)
+    chatEnabled = enabled == true
+    if chatEnabled then return end
+
+    -- Logging out must immediately release NUI focus and must not leave an
+    -- attempted open queued for the next NUI-ready handshake.
+    pendingOpen = false
+    closeInput()
+end
+
 local function openInput()
+    if not chatEnabled then return end
     if inputOpen then return end
     if IsNuiFocused and IsNuiFocused() then return end
     if not nuiReady then
@@ -48,6 +95,18 @@ local function openInput()
     inputOpen = true
     send('qbchat:open', {})
     SetNuiFocus(true, false)
+end
+
+-- The state bag is the authority for whether this client currently owns a
+-- character.  Filter dynamically by server id: client scripts load before a
+-- session has an id, so binding once to player:-1 would miss every change.
+if type(AddStateBagChangeHandler) == 'function' then
+    AddStateBagChangeHandler(LOGIN_STATE, nil, function(bagName, _, value)
+        local serverId = PlayerId and GetPlayerServerId(PlayerId())
+        if type(serverId) == 'number' and serverId > 0 and bagName == ('player:%s'):format(serverId) then
+            setChatEnabled(value == true)
+        end
+    end)
 end
 
 -- QB.keybind.add takes a single OPTIONS TABLE, not positional arguments. The
@@ -202,6 +261,8 @@ RegisterNUICallback('qbchat:ready', function(_, cb)
     send('qbchat:init', {
         config = Config.chat,
     })
+    loadHudInputOffset()
+    send('qbchat:inputOffset', inputOffset)
     refreshNativeCommands()
     TriggerServerEvent('chat:init')
 
@@ -214,6 +275,7 @@ end)
 RegisterNUICallback('qbchat:submit', function(data, cb)
     closeInput()
     cb({ ok = true })
+    if not chatEnabled then return end
     if type(data) ~= 'table' or data.cancelled == true or type(data.message) ~= 'string' then return end
 
     local message = cleanInput(data.message)
@@ -227,6 +289,7 @@ RegisterNUICallback('qbchat:submit', function(data, cb)
 end)
 
 RegisterNUICallback('qbchat:suggest', function(data, cb)
+    if not chatEnabled then cb({}); return end
     if type(data) ~= 'table' then cb({}); return end
     local ok, result = pcall(function()
         return QB.callback.trigger(
