@@ -20,3 +20,6 @@ Config.chat = {
 -- registerMessageType server export. Built-ins (say, me, ooc) are registered
 -- by server/main.lua so their behavior cannot drift from the documented API.
 Config.messageTypes = {}
+
+-- Registers this resource-owned configuration with qblib without changing its public Config table.
+if QB and QB.config and QB.config.adopt then Config = QB.config.adopt(Config) end
