@@ -74,9 +74,11 @@ local function cleanInput(value)
 end
 
 local function closeInput()
-    if not inputOpen then return end
     inputOpen = false
     SetNuiFocus(false, false)
+    -- Closing is intentionally idempotent. The NUI and this client can get
+    -- out of sync after a focus hand-off or a restart, so a stale `false`
+    -- flag must never leave the composer rendered or keyboard input captured.
     send('qbchat:close', {})
 end
 
@@ -316,8 +318,7 @@ end)
 
 AddEventHandler('onClientResourceStop', function(resource)
     if resource == GetCurrentResourceName() then
-        if inputOpen then SetNuiFocus(false, false) end
-        inputOpen = false
+        closeInput()
         pendingOpen = false
         if SetTextChatEnabled then SetTextChatEnabled(true) end
     else

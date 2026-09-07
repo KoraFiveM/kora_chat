@@ -56,6 +56,14 @@ describe("chat interactions", () => {
     expect(input).toHaveValue("hello")
   })
 
+  it("dismisses an open composer with Escape when the input has lost focus", async () => {
+    render(<App />)
+    nui("qbchat:open", {})
+    await screen.findByLabelText("Chat message")
+    fireEvent.keyDown(window, { key: "Escape" })
+    await waitFor(() => expect(screen.queryByLabelText("Chat message")).not.toBeInTheDocument())
+  })
+
   it("clears received messages", async () => {
     render(<App />)
     nui("qbchat:message", { id: "one", args: ["System message"] })

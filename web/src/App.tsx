@@ -285,6 +285,19 @@ export default function App() {
     void fetchNui("qbchat:submit", { cancelled, message })
   }, [config.historyLimit, scheduleFade, value])
 
+  // The input normally handles Escape, but focus can be handed to another
+  // element while the composer remains visible. Keep a document-level escape
+  // hatch so the player can always dismiss chat without reopening the UI.
+  useEffect(() => {
+    const dismissWithEscape = (event: KeyboardEvent) => {
+      if (!open || event.key !== "Escape" || event.target === inputRef.current) return
+      event.preventDefault()
+      submit(true)
+    }
+    window.addEventListener("keydown", dismissWithEscape)
+    return () => window.removeEventListener("keydown", dismissWithEscape)
+  }, [open, submit])
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Escape") {
       event.preventDefault()

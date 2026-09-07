@@ -140,6 +140,18 @@ H.test('chat input is enabled only while a character is logged in', function()
     setLoggedIn(true)
 end)
 
+H.test('logout force-closes a desynchronized composer', function()
+    -- A prior NUI submit can clear Lua's state before the browser receives
+    -- its close event. Logging out must still release focus and tell that
+    -- stale browser frame to hide.
+    nuiCallbacks['qbchat:submit']({ cancelled = true }, function() end)
+    local focusBefore = #focusCalls
+    setLoggedIn(false)
+    H.equal(focusCalls[focusBefore + 1][1], false)
+    H.equal(latestAction('qbchat:close').action, 'qbchat:close')
+    setLoggedIn(true)
+end)
+
 H.test('the HUD layout event updates and clamps the chat input layout', function()
     -- The composer is in qbchat's NUI, but /hudlayout persists its position
     -- in qbhud. This local event is the intentionally small bridge between
