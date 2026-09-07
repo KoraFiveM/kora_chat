@@ -64,14 +64,14 @@ describe("chat interactions", () => {
     await waitFor(() => expect(screen.queryByText("System message")).not.toBeInTheDocument())
   })
 
-  it("moves only the chat composer when the HUD supplies an input offset", async () => {
+  it("moves and scales only the chat composer when the HUD supplies its layout", async () => {
     const { container } = render(<App />)
     nui("qbchat:open", {})
     await screen.findByLabelText("Chat message")
-    act(() => nui("qbchat:inputOffset", { x: 0.25, y: -0.1 }))
+    act(() => nui("qbchat:inputOffset", { x: 0.25, y: -0.1, scale: 1.25 }))
 
-    await waitFor(() => expect(container.querySelector(".composer")).toHaveStyle({ transform: "translate(25vw, -10vh)" }))
-    expect(container.querySelector(".message-feed")).not.toHaveStyle({ transform: "translate(25vw, -10vh)" })
+    await waitFor(() => expect(container.querySelector(".composer")).toHaveStyle({ transform: "translate(25vw, -10vh) scale(1.25)" }))
+    expect(container.querySelector(".message-feed")).not.toHaveStyle({ transform: "translate(25vw, -10vh) scale(1.25)" })
   })
 
   it("keeps only the newest two hundred received messages", () => {

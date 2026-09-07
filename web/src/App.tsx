@@ -106,6 +106,7 @@ export default function App() {
   const [loadingValues, setLoadingValues] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [inputOffset, setInputOffset] = useState({ x: 0, y: 0 })
+  const [inputScale, setInputScale] = useState(1)
   const [suggestionsAboveInput, setSuggestionsAboveInput] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const inputRowRef = useRef<HTMLDivElement>(null)
@@ -158,10 +159,12 @@ export default function App() {
   useNuiEvent<ChatInit>("qbchat:init", ({ config: incoming }) => {
     if (incoming) setConfig((current) => ({ ...current, ...incoming }))
   })
-  useNuiEvent<{ x?: unknown; y?: unknown }>("qbchat:inputOffset", (incoming) => {
+  useNuiEvent<{ x?: unknown; y?: unknown; scale?: unknown }>("qbchat:inputOffset", (incoming) => {
     const x = typeof incoming?.x === "number" && Number.isFinite(incoming.x) ? incoming.x : 0
     const y = typeof incoming?.y === "number" && Number.isFinite(incoming.y) ? incoming.y : 0
+    const scale = typeof incoming?.scale === "number" && Number.isFinite(incoming.scale) ? incoming.scale : 1
     setInputOffset({ x: Math.max(-0.95, Math.min(0.95, x)), y: Math.max(-0.95, Math.min(0.95, y)) })
+    setInputScale(Math.max(0.75, Math.min(1.5, scale)))
   })
   useNuiEvent<ChatMessage>("qbchat:message", pushMessage)
   useNuiEvent<Record<string, never>>("qbchat:open", () => {
@@ -358,7 +361,7 @@ export default function App() {
         <section
           className="composer"
           aria-label="Chat input"
-          style={{ transform: `translate(${inputOffset.x * 100}vw, ${inputOffset.y * 100}vh)` }}
+          style={{ transform: `translate(${inputOffset.x * 100}vw, ${inputOffset.y * 100}vh) scale(${inputScale})`, transformOrigin: "top left" }}
         >
           <div className="input-row" ref={inputRowRef}>
             <Terminal aria-hidden="true" size={16} />

@@ -158,3 +158,17 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   .message-feed { transition: none; }
 }
+
+@media (max-width: 640px) {
+  .chat-shell { top: 8px; left: 8px; width: calc(100vw - 16px); }
+  .message-feed { max-height: 32vh; padding-right: 0; }
+  .message-row { min-height: 36px; gap: 7px; border-radius: 8px; padding: 7px 8px; }
+  .message-icon { width: 21px; height: 21px; }.message-icon svg { width: 13px; height: 13px; }
+  .message-text { font-size: 13px; line-height: 17px; }.message-meta { gap: 5px; }
+  .input-row { height: 38px; gap: 7px; padding: 0 10px; }.input-row kbd { display: none; }
+  .suggestion-panel { max-height: 40vh; }.suggestion-help { white-space: normal; }
+}
+
+@media (max-height: 560px) {
+  .chat-shell { top: 6px; }.message-feed { max-height: 24vh; }.suggestion-panel { max-height: 32vh; }
+}

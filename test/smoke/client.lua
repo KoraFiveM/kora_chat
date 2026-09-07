@@ -140,19 +140,21 @@ H.test('chat input is enabled only while a character is logged in', function()
     setLoggedIn(true)
 end)
 
-H.test('the HUD layout event updates and clamps the chat input offset', function()
+H.test('the HUD layout event updates and clamps the chat input layout', function()
     -- The composer is in qbchat's NUI, but /hudlayout persists its position
     -- in qbhud. This local event is the intentionally small bridge between
     -- those two resource-owned frames.
-    fire('qbchat:setInputLayout', { x = 2, y = -2 })
-    local offset = latestAction('qbchat:inputOffset').data
-    H.equal(offset.x, 0.95)
-    H.equal(offset.y, -0.95)
+    fire('qbchat:setInputLayout', { x = 2, y = -2, scale = 2 })
+    local layout = latestAction('qbchat:inputOffset').data
+    H.equal(layout.x, 0.95)
+    H.equal(layout.y, -0.95)
+    H.equal(layout.scale, 1.5)
 
     fire('qbchat:setInputLayout', { x = 'bad', y = 0 })
-    offset = latestAction('qbchat:inputOffset').data
-    H.equal(offset.x, 0)
-    H.equal(offset.y, 0)
+    layout = latestAction('qbchat:inputOffset').data
+    H.equal(layout.x, 0)
+    H.equal(layout.y, 0)
+    H.equal(layout.scale, 1)
 end)
 
 H.test('T does not steal focus from another active NUI', function()

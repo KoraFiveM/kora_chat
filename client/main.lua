@@ -4,7 +4,7 @@ local pendingOpen = false
 local overhead = {}
 local overheadThreadRunning = false
 local removedSuggestions = {}
-local inputOffset = { x = 0, y = 0 }
+local inputLayout = { x = 0, y = 0, scale = 1 }
 local LOGIN_STATE = 'qbcore:loggedIn'
 -- This is replicated by qbcore and survives a qbchat restart, unlike the
 -- legacy load/unload events.  A missing state means character select/loading,
@@ -18,33 +18,40 @@ local function send(action, data)
 end
 
 -- The HUD owns the persisted layout because /hudlayout is its editor, while
--- this resource owns the composer that consumes this one offset. Clamp again
+-- this resource owns the composer that consumes this layout. Clamp again
 -- at this boundary: local events are an integration surface, not trusted UI
 -- input, and invalid CSS values must never reach the browser.
-local function setInputOffset(offset)
-    if type(offset) ~= 'table' then
-        inputOffset = { x = 0, y = 0 }
+local function setInputLayout(layout)
+    if type(layout) ~= 'table' then
+        inputLayout = { x = 0, y = 0, scale = 1 }
     else
-        local x, y = tonumber(offset.x), tonumber(offset.y)
+        local x, y, scale = tonumber(layout.x), tonumber(layout.y), tonumber(layout.scale)
         if not x or x ~= x or not y or y ~= y then
-            inputOffset = { x = 0, y = 0 }
+            inputLayout = { x = 0, y = 0, scale = 1 }
         else
-            inputOffset = {
+            inputLayout = {
                 x = math.max(-0.95, math.min(0.95, x)),
                 y = math.max(-0.95, math.min(0.95, y)),
+                -- Layouts saved before chat scaling had no scale key. Keep
+                -- those players at the shipped size rather than treating
+                -- their otherwise-valid layout as malformed.
+                scale = scale and scale == scale and math.max(0.75, math.min(1.50, scale)) or 1,
             }
         end
     end
 
-    if nuiReady then send('qbchat:inputOffset', inputOffset) end
+    if nuiReady then send('qbchat:inputOffset', inputLayout) end
 end
 
-AddEventHandler('qbchat:setInputLayout', setInputOffset)
+AddEventHandler('qbchat:setInputLayout', setInputLayout)
 
-local function loadHudInputOffset()
+local function loadHudInputLayout()
     if type(GetResourceState) ~= 'function' or GetResourceState('qbhud') ~= 'started' then return end
     local ok, layout = pcall(function() return exports['qbhud']:getLayout() end)
-    if ok and type(layout) == 'table' then setInputOffset(layout.offsets and layout.offsets.chatInput) end
+    if ok and type(layout) == 'table' then
+        local offset = layout.offsets and layout.offsets.chatInput or {}
+        setInputLayout({ x = offset.x or 0, y = offset.y or 0, scale = layout.scales and layout.scales.chatInput })
+    end
 end
 
 local function provideExport(identity, name, fn)
@@ -261,8 +268,8 @@ RegisterNUICallback('qbchat:ready', function(_, cb)
     send('qbchat:init', {
         config = Config.chat,
     })
-    loadHudInputOffset()
-    send('qbchat:inputOffset', inputOffset)
+    loadHudInputLayout()
+    send('qbchat:inputOffset', inputLayout)
     refreshNativeCommands()
     TriggerServerEvent('chat:init')
 
