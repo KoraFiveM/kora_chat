@@ -285,6 +285,16 @@ export default function App() {
     void fetchNui("qbchat:submit", { cancelled, message })
   }, [config.historyLimit, scheduleFade, value])
 
+  const completeSuggestion = useCallback((completion: CommandSuggestion | ValueSuggestion) => {
+    setValue(limitCharacters(
+      "value" in completion
+        ? completeArgument(value, completion.value)
+        : completeCommand(completion.name),
+      config.maxMessageLength,
+    ))
+    inputRef.current?.focus()
+  }, [config.maxMessageLength, value])
+
   // The input normally handles Escape, but focus can be handed to another
   // element while the composer remains visible. Keep a document-level escape
   // hatch so the player can always dismiss chat without reopening the UI.
@@ -313,8 +323,7 @@ export default function App() {
       event.preventDefault()
       const completion = completions[selectedIndex]
       if (!completion) return
-      if ("value" in completion) setValue(limitCharacters(completeArgument(value, completion.value), config.maxMessageLength))
-      else setValue(limitCharacters(completeCommand(completion.name), config.maxMessageLength))
+      completeSuggestion(completion)
       return
     }
     if (event.key === "ArrowUp" || event.key === "ArrowDown") {
@@ -403,9 +412,11 @@ export default function App() {
                 return (
                   <div
                     aria-selected={completions === commandMatches && selectedIndex === index}
-                    className={`suggestion-row ${completions === commandMatches && selectedIndex === index ? "selected" : ""}`}
-                    key={suggestion.name}
-                    role="option"
+                  className={`suggestion-row ${completions === commandMatches && selectedIndex === index ? "selected" : ""}`}
+                  key={suggestion.name}
+                  onClick={() => completeSuggestion(suggestion)}
+                  onMouseDown={(event) => event.preventDefault()}
+                  role="option"
                   >
                     <div className="signature">
                       <span className="command-name">{normalizeCommandName(suggestion.name)}</span>
@@ -433,6 +444,8 @@ export default function App() {
                   aria-selected={selectedIndex === index}
                   className={`suggestion-row value ${selectedIndex === index ? "selected" : ""}`}
                   key={suggestion.value}
+                  onClick={() => completeSuggestion(suggestion)}
+                  onMouseDown={(event) => event.preventDefault()}
                   role="option"
                 >
                   <div className="signature">

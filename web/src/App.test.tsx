@@ -23,6 +23,17 @@ describe("chat interactions", () => {
     expect(input).toHaveValue("/giveitem ")
   })
 
+  it("completes a command when its suggestion is clicked", async () => {
+    render(<App />)
+    nui("qbchat:suggestionAdd", { name: "/giveitem", help: "Give item", params: [{ name: "id" }] })
+    nui("qbchat:open", {})
+    const input = await screen.findByLabelText("Chat message")
+    fireEvent.change(input, { target: { value: "/giv" } })
+    fireEvent.click(await screen.findByRole("option", { name: /giveitem/i }))
+    expect(input).toHaveValue("/giveitem ")
+    expect(input).toHaveFocus()
+  })
+
   it("places suggestions above the input when they would overflow the viewport", async () => {
     const bounds = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
       return {

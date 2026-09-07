@@ -76,12 +76,12 @@
 .composer {
   position: relative;
   margin-top: 6px;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 .input-row {
   display: flex;
-  height: 40px;
+  height: 48px;
   align-items: center;
   gap: 9px;
   border: 1px solid hsl(var(--input));
@@ -93,7 +93,7 @@
 
 .input-row:focus-within {
   border-color: hsl(var(--brand-border));
-  box-shadow: 0 0 0 2px hsl(var(--ring) / .55), 0 12px 32px rgb(0 0 0 / 42%);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 42%);
 }
 
 .input-row > svg { flex: 0 0 auto; color: hsl(var(--muted-foreground)); }
@@ -165,7 +165,7 @@ kbd {
   .message-row { min-height: 36px; gap: 7px; border-radius: 8px; padding: 7px 8px; }
   .message-icon { width: 21px; height: 21px; }.message-icon svg { width: 13px; height: 13px; }
   .message-text { font-size: 13px; line-height: 17px; }.message-meta { gap: 5px; }
-  .input-row { height: 38px; gap: 7px; padding: 0 10px; }.input-row kbd { display: none; }
+  .input-row { height: 44px; gap: 7px; padding: 0 10px; }.input-row kbd { display: none; }
   .suggestion-panel { max-height: 40vh; }.suggestion-help { white-space: normal; }
 }
 
