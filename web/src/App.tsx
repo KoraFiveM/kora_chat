@@ -108,9 +108,12 @@ export default function App() {
   const [inputOffset, setInputOffset] = useState({ x: 0, y: 0 })
   const [inputScale, setInputScale] = useState(1)
   const [suggestionsAboveInput, setSuggestionsAboveInput] = useState(false)
+  const [feedMaxHeight, setFeedMaxHeight] = useState<number>()
   const inputRef = useRef<HTMLInputElement>(null)
   const inputRowRef = useRef<HTMLDivElement>(null)
   const feedRef = useRef<HTMLDivElement>(null)
+  const composerRef = useRef<HTMLElement>(null)
+  const configuredFeedMaxHeight = useRef<number>()
   const suggestionPanelRef = useRef<HTMLDivElement>(null)
   const fadeTimer = useRef<number>()
   const requestGeneration = useRef(0)
@@ -239,6 +242,39 @@ export default function App() {
   useEffect(() => {
     feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight })
   }, [messages, open])
+
+  useLayoutEffect(() => {
+    const feed = feedRef.current
+    const composer = composerRef.current
+    if (!open || !feed || !composer) {
+      configuredFeedMaxHeight.current = undefined
+      setFeedMaxHeight(undefined)
+      return
+    }
+
+    const updateFeedHeight = () => {
+      const feedBounds = feed.getBoundingClientRect()
+      const composerBounds = composer.getBoundingClientRect()
+      if (feed.offsetWidth === 0 || feedBounds.width === 0 || composerBounds.height === 0) return
+
+      const nuiScale = feedBounds.width / feed.offsetWidth
+      configuredFeedMaxHeight.current ??= Number.parseFloat(window.getComputedStyle(feed).maxHeight)
+      const configuredLimit = configuredFeedMaxHeight.current
+      if (!Number.isFinite(configuredLimit)) return
+      const availableHeight = (composerBounds.top - feedBounds.top - 12) / nuiScale
+      setFeedMaxHeight(Math.max(0, Math.min(configuredLimit, availableHeight)))
+    }
+
+    updateFeedHeight()
+    window.addEventListener("resize", updateFeedHeight)
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updateFeedHeight)
+    observer?.observe(feed)
+    observer?.observe(composer)
+    return () => {
+      window.removeEventListener("resize", updateFeedHeight)
+      observer?.disconnect()
+    }
+  }, [inputOffset.y, inputScale, messages.length, open])
 
   useEffect(() => {
     setSelectedIndex(0)
@@ -375,6 +411,7 @@ export default function App() {
         aria-live="polite"
         className={`message-feed ${feedVisible || open ? "visible" : "hidden"}`}
         ref={feedRef}
+        style={feedMaxHeight === undefined ? undefined : { maxHeight: `${feedMaxHeight}px` }}
       >
         {messages.map((message) => <MessageRow key={message.id} message={message} templates={templates} />)}
       </section>
@@ -383,6 +420,7 @@ export default function App() {
         <section
           className="composer"
           aria-label="Chat input"
+          ref={composerRef}
           style={{ transform: `translate(${inputOffset.x * 100}vw, ${inputOffset.y * 100}vh) scale(${inputScale})`, transformOrigin: "top left" }}
         >
           <div className="input-row" ref={inputRowRef}>
