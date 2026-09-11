@@ -300,16 +300,14 @@ end)
 RegisterNUICallback('qbchat:suggest', function(data, cb)
     if not chatEnabled then cb({}); return end
     if type(data) ~= 'table' then cb({}); return end
-    local ok, result = pcall(function()
-        return QB.callback.trigger(
-            'qbchat:commandSuggestions',
-            data.command,
-            data.argumentIndex,
-            data.query,
-            data.args
-        )
-    end)
-    cb(ok and type(result) == 'table' and result or {})
+    local result = QB.callback.trigger(
+        'qbchat:commandSuggestions',
+        data.command,
+        data.argumentIndex,
+        data.query,
+        data.args
+    )
+    cb(type(result) == 'table' and result or {})
 end)
 
 AddEventHandler('onClientResourceStart', function()
