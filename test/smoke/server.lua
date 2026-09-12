@@ -81,6 +81,20 @@ _G.QB = {
             }
         end,
     },
+    timers = {
+        cooldown = function(interval)
+            local usedAt = {}
+            return {
+                use = function(key)
+                    local previous = usedAt[key]
+                    if previous and clock - previous < interval then return false end
+                    usedAt[key] = clock
+                    return true
+                end,
+                reset = function(key) usedAt[key] = nil end,
+            }
+        end,
+    },
     distance = {
         player = function(target, coords, range)
             local targetCoords = GetEntityCoords(GetPlayerPed(target))

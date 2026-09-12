@@ -4,8 +4,8 @@ local registeredModes = {}
 local commandTypes = {}
 local nextHookId = 0
 local nextMessageId = 0
-local lastMessageAt = {}
 local suggestionRate = {}
+local messageCooldown = QB.timers.cooldown(Config.chat.minimumMessageInterval)
 
 local ICONS = {
     message = true,
@@ -91,11 +91,7 @@ end)
 
 local function rateAllowed(source)
     if source == 0 then return true end
-    local now = GetGameTimer()
-    local previous = lastMessageAt[source]
-    if previous and now - previous < Config.chat.minimumMessageInterval then return false end
-    lastMessageAt[source] = now
-    return true
+    return messageCooldown.use(source)
 end
 
 local function characterName(source)
@@ -484,7 +480,7 @@ QB.callback.register('qbchat:commandSuggestions', function(source, command, argu
 end)
 
 AddEventHandler('playerDropped', function()
-    lastMessageAt[source] = nil
+    messageCooldown.reset(source)
     suggestionRate[source] = nil
 end)
 
