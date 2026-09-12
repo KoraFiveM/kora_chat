@@ -54,6 +54,9 @@ _G.QBTheme = { refresh = function() themeRefreshes = themeRefreshes + 1 end }
 
 local drawCalls = {}
 _G.QB = {
+    compat = { provideExport = function(identity, name, fn)
+        AddEventHandler(('__cfx_export_%s_%s'):format(identity, name), function(setCB) setCB(fn) end)
+    end },
     -- Mirrors qblib's REAL QB.keybind.add: one options table, with the same
     -- assertions modules/keybind/client.lua makes. The previous mock took
     -- positional (name, label, key, handler) -- a signature qblib has never

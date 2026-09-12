@@ -16,35 +16,11 @@ local ICONS = {
     info = true,
 }
 
-local function isCallable(value)
-    if type(value) == 'function' then return true end
-    local mt = type(value) == 'table' and getmetatable(value) or nil
-    return mt ~= nil and mt.__call ~= nil
-end
-
-local function provideExport(identity, name, fn)
-    AddEventHandler(('__cfx_export_%s_%s'):format(identity, name), function(setCB)
-        setCB(fn)
-    end)
-end
-
-local function trim(value)
-    return value:match('^%s*(.-)%s*$')
-end
-
-local function truncateUtf8(value, maximum)
-    local valid, length = pcall(utf8.len, value)
-    if not valid or not length then return nil end
-    if length <= maximum then return value end
-    local offset = utf8.offset(value, maximum + 1)
-    return offset and value:sub(1, offset - 1) or value
-end
-
 local function cleanMessage(value)
     if type(value) ~= 'string' then return nil end
-    value = trim(value:gsub('[%z\1-\8\11\12\14-\31]', ''))
+    value = QB.util.trim(value:gsub('[%z\1-\8\11\12\14-\31]', ''))
     if value == '' then return nil end
-    return truncateUtf8(value, Config.chat.maxMessageLength)
+    return QB.util.truncateUtf8(value, Config.chat.maxMessageLength)
 end
 
 local function permissionCheck(source, permission)
@@ -103,8 +79,8 @@ local function validateDefinition(name, definition)
     normalized.overhead = definition.overhead == true
     normalized.overheadDuration = math.floor(tonumber(definition.overheadDuration) or Config.chat.overheadDuration)
     assert(normalized.overheadDuration > 0 and normalized.overheadDuration <= 30000, 'overheadDuration must be between 1 and 30000ms.')
-    normalized.checkPermission = isCallable(definition.checkPermission) and definition.checkPermission or permissionCheck
-    normalized.modeCallback = isCallable(definition.modeCallback) and definition.modeCallback or nil
+    normalized.checkPermission = QB.util.isCallable(definition.checkPermission) and definition.checkPermission or permissionCheck
+    normalized.modeCallback = QB.util.isCallable(definition.modeCallback) and definition.modeCallback or nil
     return normalized
 end
 
@@ -371,7 +347,7 @@ local function addCompatMessage(target, message)
 end
 
 local function registerMessageHook(hook)
-    assert(isCallable(hook), 'hook must be callable')
+    assert(QB.util.isCallable(hook), 'hook must be callable')
     nextHookId = nextHookId + 1
     messageHooks[nextHookId] = {
         fn = hook,
@@ -382,7 +358,7 @@ end
 
 local function registerMode(modeData)
     if type(modeData) ~= 'table' or type(modeData.name) ~= 'string'
-        or type(modeData.displayName) ~= 'string' or not isCallable(modeData.cb) then
+        or type(modeData.displayName) ~= 'string' or not QB.util.isCallable(modeData.cb) then
         return false
     end
 
@@ -441,9 +417,9 @@ end
 exports('addMessage', addCompatMessage)
 exports('registerMessageHook', registerMessageHook)
 exports('registerMode', registerMode)
-provideExport('chat', 'addMessage', addCompatMessage)
-provideExport('chat', 'registerMessageHook', registerMessageHook)
-provideExport('chat', 'registerMode', registerMode)
+QB.compat.provideExport('chat', 'addMessage', addCompatMessage)
+QB.compat.provideExport('chat', 'registerMessageHook', registerMessageHook)
+QB.compat.provideExport('chat', 'registerMode', registerMode)
 
 RegisterNetEvent('qbchat:send', function(message)
     dispatchMessage(source, 'say', message)

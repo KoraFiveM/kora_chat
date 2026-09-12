@@ -45,6 +45,23 @@ _G.exports = setmetatable({ qbcore = qbcore }, {
 
 local tracked = {}
 _G.QB = {
+    compat = { provideExport = function(identity, name, fn)
+        AddEventHandler(('__cfx_export_%s_%s'):format(identity, name), function(setCB) setCB(fn) end)
+    end },
+    util = {
+        isCallable = function(value)
+            if type(value) == 'function' then return true end
+            local mt = type(value) == 'table' and getmetatable(value) or nil
+            return mt ~= nil and mt.__call ~= nil
+        end,
+        trim = function(value) return type(value) == 'string' and value:match('^%s*(.-)%s*$') or value end,
+        truncateUtf8 = function(value, maximum)
+            local length = utf8.len(value)
+            if not length or length <= maximum then return length and value or nil end
+            local offset = utf8.offset(value, maximum + 1)
+            return value:sub(1, offset - 1)
+        end,
+    },
     resources = {
         serverRegistry = function(dispose)
             AddEventHandler('onResourceStop', function(resource)

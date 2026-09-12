@@ -54,12 +54,6 @@ local function loadHudInputLayout()
     end
 end
 
-local function provideExport(identity, name, fn)
-    AddEventHandler(('__cfx_export_%s_%s'):format(identity, name), function(setCB)
-        setCB(fn)
-    end)
-end
-
 local function cleanInput(value)
     if type(value) ~= 'string' then return nil end
     value = value:gsub('[%z\1-\8\11\12\14-\31]', ''):match('^%s*(.-)%s*$')
@@ -145,8 +139,8 @@ end
 
 exports('addMessage', addMessage)
 exports('addSuggestion', addSuggestion)
-provideExport('chat', 'addMessage', addMessage)
-provideExport('chat', 'addSuggestion', addSuggestion)
+QB.compat.provideExport('chat', 'addMessage', addMessage)
+QB.compat.provideExport('chat', 'addSuggestion', addSuggestion)
 
 RegisterNetEvent('chatMessage', function(author, color, text)
     local args = author and author ~= '' and { author, text } or { text }
