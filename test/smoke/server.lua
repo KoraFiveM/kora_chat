@@ -7,6 +7,7 @@ local netHandlers, eventHandlers, commands, callbacks = {}, {}, {}, {}
 local clientEvents, ownExports, aliasExports = {}, {}, {}
 local clock, invokingResource = 1000, nil
 local missingPedSource = nil
+local buckets = {}
 
 _G.source = 1
 _G.RegisterNetEvent = function(name, cb)
@@ -31,6 +32,7 @@ _G.GetCurrentResourceName = function() return 'qbchat' end
 _G.GetPlayers = function() return { '1', '2', '3', '4' } end
 _G.GetPlayerName = function(src) return ({ [1] = 'Account One', [2] = 'Account Two', [3] = 'Account Three', [4] = 'Account Four' })[tonumber(src)] end
 _G.GetPlayerPed = function(src) return tonumber(src) == missingPedSource and 0 or tonumber(src) end
+_G.GetPlayerRoutingBucket = function(src) return buckets[tonumber(src)] or 0 end
 _G.DoesEntityExist = function(entity) return entity ~= 0 end
 _G.GetEntityCoords = function(entity) return { x = entity * 10, y = 0, z = 0 } end
 _G.IsPlayerAceAllowed = function() return true end
@@ -310,6 +312,94 @@ H.test('stock modes become typed commands and announce lifecycle events', functi
     TriggerEvent('onResourceStop', 'mode_resource')
     H.falsy(commands.staff)
     H.equal(latest('chat:removeMode')[1].name, 'staff')
+end)
+
+local function messageTargets(message)
+    local targets = {}
+    for _, event in ipairs(clientEvents) do
+        if event.name == 'qbchat:message' and event[1].message == message then
+            targets[event.target] = (targets[event.target] or 0) + 1
+        end
+    end
+    return targets
+end
+
+H.test('all local entry paths exclude nearby players in another bucket', function()
+    invokingResource = 'routing_probe'
+    ownExports.registerMessageType('nearby', { label = 'Nearby', scope = 'local' })
+    aliasExports.registerMode({ name = 'room', displayName = 'Room', cb = function() end })
+    invokingResource = nil
+    local entries = {
+        function(message) fireNet('qbchat:send', 1, message) end,
+        function(message) fireNet('_chat:messageEntered', 1, 'ignored', {}, message) end,
+        function(message) commands.say(1, {}, 'say ' .. message) end,
+        function(message) commands.me(1, {}, 'me ' .. message) end,
+        function(message) commands.nearby(1, {}, 'nearby ' .. message) end,
+        function(message) fireNet('_chat:messageEntered', 1, 'ignored', {}, message, 'room') end,
+    }
+    for index, send in ipairs(entries) do
+        for _, bucket in ipairs({ 0, 77 }) do
+            buckets = { [1] = bucket, [2] = bucket + 1, [3] = bucket, [4] = bucket }
+            clock = clock + Config.chat.minimumMessageInterval
+            local message = ('local path %d bucket %d'):format(index, bucket)
+            send(message)
+            local targets = messageTargets(message)
+            H.equal(targets[1], 1, 'sender remains included once')
+            H.falsy(targets[2], 'nearby player in another bucket must not receive local chat')
+            H.equal(targets[3], 1, 'same-bucket range boundary remains included')
+            H.falsy(targets[4], 'same-bucket distant player remains excluded')
+        end
+    end
+    TriggerEvent('onResourceStop', 'routing_probe')
+    buckets = {}
+end)
+
+H.test('local routing uses current buckets after players move between instances', function()
+    buckets = { [1] = 42, [2] = 99, [3] = 99 }
+    clock = clock + Config.chat.minimumMessageInterval
+    fireNet('qbchat:send', 1, 'before instance change')
+    H.falsy(messageTargets('before instance change')[2])
+    buckets[2] = 42
+    clock = clock + Config.chat.minimumMessageInterval
+    fireNet('qbchat:send', 1, 'after instance change')
+    H.equal(messageTargets('after instance change')[2], 1)
+    buckets = {}
+end)
+
+H.test('global, explicit, hook and mode routing retain cross-bucket delivery', function()
+    buckets = { [1] = 42, [2] = 99 }
+    H.truthy(ownExports.sendMessage(2, 'say', 'explicit target', { source = 1 }))
+    H.equal(messageTargets('explicit target')[2], 1)
+    H.falsy(messageTargets('explicit target')[1])
+    H.truthy(ownExports.sendMessage({ 1, 2 }, 'say', 'explicit list', { source = 1 }))
+    H.equal(messageTargets('explicit list')[1], 1)
+    H.equal(messageTargets('explicit list')[2], 1)
+    H.truthy(ownExports.sendMessage(-1, 'say', 'explicit broadcast', { source = 1 }))
+    H.equal(messageTargets('explicit broadcast')[-1], 1)
+    clock = clock + Config.chat.minimumMessageInterval
+    commands.ooc(1, {}, 'ooc global broadcast')
+    H.equal(messageTargets('global broadcast')[-1], 1)
+    commands.say(0, {}, 'say console broadcast')
+    H.equal(messageTargets('console broadcast')[-1], 1)
+
+    invokingResource = 'routing_hook_probe'
+    aliasExports.registerMessageHook(function(_, _, hookRef) hookRef.setRouting({ 2 }) end)
+    invokingResource = nil
+    clock = clock + Config.chat.minimumMessageInterval
+    fireNet('qbchat:send', 1, 'hook override')
+    H.equal(messageTargets('hook override')[2], 1)
+    H.falsy(messageTargets('hook override')[1])
+    TriggerEvent('onResourceStop', 'routing_hook_probe')
+
+    invokingResource = 'routing_mode_probe'
+    aliasExports.registerMode({ name = 'override', displayName = 'Override', cb = function(_, _, hookRef) hookRef.setRouting({ 2 }) end })
+    invokingResource = nil
+    clock = clock + Config.chat.minimumMessageInterval
+    commands.override(1, {}, 'override mode override')
+    H.equal(messageTargets('mode override')[2], 1)
+    H.falsy(messageTargets('mode override')[1])
+    TriggerEvent('onResourceStop', 'routing_mode_probe')
+    buckets = {}
 end)
 
 H.test('dynamic suggestion callback delegates and rate limits safely', function()

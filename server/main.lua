@@ -118,10 +118,11 @@ local function localTargets(source, range)
 
     local coords = GetEntityCoords(ped)
     if not coords then return result end
+    local bucket = GetPlayerRoutingBucket(source)
 
     for _, rawTarget in ipairs(GetPlayers()) do
         local target = tonumber(rawTarget)
-        if target and not included[target] then
+        if target and not included[target] and GetPlayerRoutingBucket(target) == bucket then
             local targetPed = GetPlayerPed(target)
             if targetPed and targetPed ~= 0 and (not DoesEntityExist or DoesEntityExist(targetPed)) then
                 local ok, nearby = pcall(QB.distance.player, target, coords, range)
