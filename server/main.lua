@@ -26,7 +26,7 @@ end
 local function permissionCheck(source, permission)
     if source == 0 or permission == nil or permission == 'user' then return true end
     local ok, allowed = pcall(function()
-        return exports.qbcore:hasPermission(source, permission)
+        return exports.kora_core:hasPermission(source, permission)
     end)
     return ok and allowed == true
 end
@@ -96,7 +96,7 @@ end
 
 local function characterName(source)
     local ok, name = pcall(function()
-        return exports.qbcore:getPlayerData(source, { 'name' })
+        return exports.kora_core:getPlayerData(source, { 'name' })
     end)
     if ok and type(name) == 'string' and name ~= '' then return name end
     return GetPlayerName(source) or ('Player %d'):format(source)

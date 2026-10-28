@@ -6,7 +6,7 @@ local overheadThreadRunning = false
 local removedSuggestions = {}
 local inputLayout = { x = 0, y = 0, scale = 1 }
 local LOGIN_STATE = 'qbcore:loggedIn'
--- This is replicated by qbcore and survives a qbchat restart, unlike the
+-- This is replicated by kora_core and survives a kora_chat restart, unlike the
 -- legacy load/unload events.  A missing state means character select/loading,
 -- where chat must remain unavailable.
 local chatEnabled = LocalPlayer and LocalPlayer.state[LOGIN_STATE] == true or false
@@ -46,8 +46,8 @@ end
 AddEventHandler('qbchat:setInputLayout', setInputLayout)
 
 local function loadHudInputLayout()
-    if type(GetResourceState) ~= 'function' or GetResourceState('qbhud') ~= 'started' then return end
-    local ok, layout = pcall(function() return exports['qbhud']:getLayout() end)
+    if type(GetResourceState) ~= 'function' or GetResourceState('kora_hud') ~= 'started' then return end
+    local ok, layout = pcall(function() return exports['kora_hud']:getLayout() end)
     if ok and type(layout) == 'table' then
         local offset = layout.offsets and layout.offsets.chatInput or {}
         setInputLayout({ x = offset.x or 0, y = offset.y or 0, scale = layout.scales and layout.scales.chatInput })
@@ -113,7 +113,7 @@ if type(AddStateBagChangeHandler) == 'function' then
 end
 
 -- QB.keybind.add takes a single OPTIONS TABLE, not positional arguments. The
--- positional form asserted inside qblib, and because this is file scope the
+-- positional form asserted inside kora_lib, and because this is file scope the
 -- throw aborted the rest of this chunk -- so RegisterNUICallback('qbchat:ready')
 -- below never ran and the NUI's ready ping 404'd, which is what actually broke
 -- chat rather than the keybind alone.

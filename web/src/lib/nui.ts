@@ -10,7 +10,7 @@ export const isNui = typeof window.GetParentResourceName === "function"
 
 export async function fetchNui<T = unknown>(callback: string, data: unknown = {}): Promise<T> {
   if (!isNui) return {} as T
-  const resource = window.GetParentResourceName?.() ?? "qbchat"
+  const resource = window.GetParentResourceName?.() ?? "kora_chat"
   const response = await fetch(`https://${resource}/${callback}`, {
     method: "POST",
     headers: { "Content-Type": "application/json; charset=UTF-8" },

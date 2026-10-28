@@ -28,7 +28,7 @@ end
 _G.RegisterCommand = function(name, cb) commands[name] = cb end
 _G.GetGameTimer = function() return clock end
 _G.GetInvokingResource = function() return invokingResource end
-_G.GetCurrentResourceName = function() return 'qbchat' end
+_G.GetCurrentResourceName = function() return 'kora_chat' end
 _G.GetPlayers = function() return { '1', '2', '3', '4' } end
 _G.GetPlayerName = function(src) return ({ [1] = 'Account One', [2] = 'Account Two', [3] = 'Account Three', [4] = 'Account Four' })[tonumber(src)] end
 _G.GetPlayerPed = function(src) return tonumber(src) == missingPedSource and 0 or tonumber(src) end
@@ -41,7 +41,7 @@ _G.WasEventCanceled = function() return false end
 local qbcore = {}
 function qbcore:getPlayerData(src) return src == 1 and 'Character One' or nil end
 function qbcore:hasPermission(_, permission) return permission ~= 'denied' end
-_G.exports = setmetatable({ qbcore = qbcore }, {
+_G.exports = setmetatable({ kora_core = qbcore }, {
     __call = function(_, name, fn) ownExports[name] = fn end,
 })
 

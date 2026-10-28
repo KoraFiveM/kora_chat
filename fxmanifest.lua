@@ -2,22 +2,24 @@ fx_version 'cerulean'
 game 'gta5'
 lua54 'yes'
 
-name 'qbchat'
+name 'kora_chat'
+-- Keep the legacy resource name resolvable for exports['qbchat'] callers.
+provide 'qbchat'
 author 'Jamie'
 version '1.0.0'
 description 'Event-driven, qbtheme-styled chat with proximity roleplay messages and command completion'
 
 provide 'chat'
 
-dependency 'qbtheme'
-dependency 'qblib'
-dependency 'qbcore'
+dependency 'kora_theme'
+dependency 'kora_lib'
+dependency 'kora_core'
 
-shared_script '@qblib/init.lua'
+shared_script '@kora_lib/init.lua'
 shared_script 'config.lua'
 
 client_scripts {
-    '@qbtheme/client/bridge.lua',
+    '@kora_theme/client/bridge.lua',
     'client/main.lua',
 }
 server_script 'server/main.lua'

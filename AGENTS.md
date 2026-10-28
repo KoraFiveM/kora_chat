@@ -1,17 +1,17 @@
-# qbchat agent guide
+# kora_chat agent guide
 
 ## Architecture
 
-qbchat replaces the stock `chat` resource while continuing to provide its
+kora_chat replaces the stock `chat` resource while continuing to provide its
 identity, common exports, and event surface. Lua owns input focus, validation,
 routing, compatibility, and `/me` world text; React owns presentation and
 keyboard autocomplete.
 
 The resource owns its own NUI frame. Use raw `SendNUIMessage`,
-`RegisterNUICallback`, and `SetNuiFocus` here; `QB.nui.*` targets qblib's frame.
-Pure qblib APIs such as `QB.keybind`, `QB.commands`, `QB.callback`,
+`RegisterNUICallback`, and `SetNuiFocus` here; `QB.nui.*` targets kora_lib's frame.
+Pure kora_lib APIs such as `QB.keybind`, `QB.commands`, `QB.callback`,
 `QB.distance` and `QB.drawing` remain appropriate. Theme transport comes from
-the imported qbtheme bridge.
+the imported kora_theme bridge.
 
 ## Input and loops
 

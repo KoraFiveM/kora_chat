@@ -28,7 +28,7 @@ _G.GetRegisteredCommands = function()
     return { { name = 'help' }, { name = '+qbchat_open' }, { name = '-qbchat_open' } }
 end
 _G.IsAceAllowed = function() return true end
-_G.GetCurrentResourceName = function() return 'qbchat' end
+_G.GetCurrentResourceName = function() return 'kora_chat' end
 _G.PlayerId = function() return 3 end
 _G.GetPlayerServerId = function() return 17 end
 _G.GetGameTimer = function() return clock end
@@ -57,9 +57,9 @@ _G.QB = {
     compat = { provideExport = function(identity, name, fn)
         AddEventHandler(('__cfx_export_%s_%s'):format(identity, name), function(setCB) setCB(fn) end)
     end },
-    -- Mirrors qblib's REAL QB.keybind.add: one options table, with the same
+    -- Mirrors kora_lib's REAL QB.keybind.add: one options table, with the same
     -- assertions modules/keybind/client.lua makes. The previous mock took
-    -- positional (name, label, key, handler) -- a signature qblib has never
+    -- positional (name, label, key, handler) -- a signature kora_lib has never
     -- had -- so it validated a call that threw in game, and the resulting
     -- file-scope error aborted the rest of client/main.lua before the
     -- qbchat:ready NUI callback was ever registered. The mock passing is what
@@ -156,8 +156,8 @@ H.test('logout force-closes a desynchronized composer', function()
 end)
 
 H.test('the HUD layout event updates and clamps the chat input layout', function()
-    -- The composer is in qbchat's NUI, but /hudlayout persists its position
-    -- in qbhud. This local event is the intentionally small bridge between
+    -- The composer is in kora_chat's NUI, but /hudlayout persists its position
+    -- in kora_hud. This local event is the intentionally small bridge between
     -- those two resource-owned frames.
     fire('qbchat:setInputLayout', { x = 2, y = -2, scale = 2 })
     local layout = latestAction('qbchat:inputOffset').data
@@ -263,7 +263,7 @@ end)
 
 H.test('resource stop always releases owned focus', function()
     keybind.handler()
-    fire('onClientResourceStop', 'qbchat')
+    fire('onClientResourceStop', 'kora_chat')
     H.equal(focusCalls[#focusCalls][1], false)
 end)
 
