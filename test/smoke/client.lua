@@ -106,7 +106,7 @@ local function setLoggedIn(value)
     end
 end
 
-H.test('T is registered through qblib without control polling', function()
+H.test('T is registered through kora_lib without control polling', function()
     H.equal(keybind.name, 'qbchat_open')
     H.equal(keybind.key, 'T')
     local file = assert(io.open(root .. 'client/main.lua', 'r'))
@@ -211,7 +211,7 @@ H.test('compatibility messages and suggestions reach the NUI', function()
     H.equal(latestAction('qbchat:suggestionAdd').data.name, '/heal')
 end)
 
-H.test('removed qblib suggestions are not resurrected by native command refresh', function()
+H.test('removed kora_lib suggestions are not resurrected by native command refresh', function()
     fire('chat:removeSuggestion', '/help')
     fire('onClientResourceStart', 'some_resource')
     H.equal(#latestAction('qbchat:suggestions').data, 0)
@@ -255,7 +255,7 @@ H.test('/me overhead stacks only the three newest actions per player', function(
     H.equal(coroutine.status(thread), 'dead')
 end)
 
-H.test('dynamic NUI suggestions use the qblib callback result', function()
+H.test('dynamic NUI suggestions use the kora_lib callback result', function()
     local response
     nuiCallbacks['qbchat:suggest']({ command = 'giveitem', argumentIndex = 1, query = 'wa', args = { 'wa' } }, function(value) response = value end)
     H.equal(response[1].value, 'water')

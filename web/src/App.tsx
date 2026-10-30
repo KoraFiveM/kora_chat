@@ -94,7 +94,7 @@ export default function App() {
   const [feedVisible, setFeedVisible] = useState(!isNui)
   const [value, setValue] = useState("")
   const [messages, setMessages] = useState<ChatMessage[]>(isNui ? [] : [{
-    id: "preview", type: "say", author: "Alex Mercer", message: "This is the qblib chat preview.",
+    id: "preview", type: "say", author: "Alex Mercer", message: "This is the kora_lib chat preview.",
     messageType: { name: "say", label: "Local", icon: "message" },
   }])
   const [history, setHistory] = useState<string[]>([])
