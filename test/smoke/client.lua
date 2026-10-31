@@ -53,11 +53,11 @@ _G.exports = setmetatable({}, { __call = function(_, name, fn) ownExports[name] 
 _G.QBTheme = { refresh = function() themeRefreshes = themeRefreshes + 1 end }
 
 local drawCalls = {}
-_G.QB = {
+_G.Kora = {
     compat = { provideExport = function(identity, name, fn)
         AddEventHandler(('__cfx_export_%s_%s'):format(identity, name), function(setCB) setCB(fn) end)
     end },
-    -- Mirrors kora_lib's REAL QB.keybind.add: one options table, with the same
+    -- Mirrors kora_lib's REAL Kora.keybind.add: one options table, with the same
     -- assertions modules/keybind/client.lua makes. The previous mock took
     -- positional (name, label, key, handler) -- a signature kora_lib has never
     -- had -- so it validated a call that threw in game, and the resulting
@@ -65,7 +65,7 @@ _G.QB = {
     -- qbchat:ready NUI callback was ever registered. The mock passing is what
     -- let that ship, so it asserts the real contract now.
     keybind = { add = function(options)
-        assert(type(options) == 'table', 'QB.keybind.add requires an options table.')
+        assert(type(options) == 'table', 'Kora.keybind.add requires an options table.')
         assert(type(options.name) == 'string' and options.name:match('^[%w_:%.%-]+$'),
             'Keybind name must be a non-empty command name without whitespace.')
         assert(type(options.description) == 'string' and options.description ~= '',

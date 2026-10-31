@@ -112,12 +112,12 @@ if type(AddStateBagChangeHandler) == 'function' then
     end)
 end
 
--- QB.keybind.add takes a single OPTIONS TABLE, not positional arguments. The
+-- Kora.keybind.add takes a single OPTIONS TABLE, not positional arguments. The
 -- positional form asserted inside kora_lib, and because this is file scope the
 -- throw aborted the rest of this chunk -- so RegisterNUICallback('qbchat:ready')
 -- below never ran and the NUI's ready ping 404'd, which is what actually broke
 -- chat rather than the keybind alone.
-QB.keybind.add({
+Kora.keybind.add({
     name = 'qbchat_open',
     description = 'Open chat',
     defaultKey = Config.chat.defaultKey,
@@ -139,8 +139,8 @@ end
 
 exports('addMessage', addMessage)
 exports('addSuggestion', addSuggestion)
-QB.compat.provideExport('chat', 'addMessage', addMessage)
-QB.compat.provideExport('chat', 'addSuggestion', addSuggestion)
+Kora.compat.provideExport('chat', 'addMessage', addMessage)
+Kora.compat.provideExport('chat', 'addSuggestion', addSuggestion)
 
 RegisterNetEvent('chatMessage', function(author, color, text)
     local args = author and author ~= '' and { author, text } or { text }
@@ -204,7 +204,7 @@ local function startOverheadThread()
                         if ped and ped ~= 0 and DoesEntityExist(ped) then
                             local coords = GetEntityCoords(ped)
                             for index, entry in ipairs(messages) do
-                                QB.drawing.text3d({
+                                Kora.drawing.text3d({
                                     x = coords.x,
                                     y = coords.y,
                                     z = coords.z + 1.05 + ((index - 1) * 0.16),
@@ -294,7 +294,7 @@ end)
 RegisterNUICallback('qbchat:suggest', function(data, cb)
     if not chatEnabled then cb({}); return end
     if type(data) ~= 'table' then cb({}); return end
-    local result = QB.callback.trigger(
+    local result = Kora.callback.trigger(
         'qbchat:commandSuggestions',
         data.command,
         data.argumentIndex,

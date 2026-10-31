@@ -59,7 +59,7 @@ overrides in `opts`.
 kora_lib commands can attach static or synchronous server-side completions:
 
 ```lua
-QB.commands.add('vehicle', 'Spawn a vehicle', {
+Kora.commands.add('vehicle', 'Spawn a vehicle', {
     {
         name = 'model',
         help = 'Vehicle model',

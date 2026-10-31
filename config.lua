@@ -22,10 +22,10 @@ Config.chat = {
 Config.messageTypes = {}
 
 -- Registers this resource-owned configuration with kora_lib without changing its public Config table.
-if QB and QB.config and QB.config.adopt then
-    Config.messageTypes = QB.config.map({}, QB.config.object({}), {
+if Kora and Kora.config and Kora.config.adopt then
+    Config.messageTypes = Kora.config.map({}, Kora.config.object({}), {
         label = 'Message types',
         description = 'Defines custom chat message types by command name. Each key becomes the command identifier and its value supplies the authored presentation data used when that message type is registered.',
     })
-    Config = QB.config.adopt(Config)
+    Config = Kora.config.adopt(Config)
 end

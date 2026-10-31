@@ -46,7 +46,7 @@ _G.exports = setmetatable({ kora_core = qbcore }, {
 })
 
 local tracked = {}
-_G.QB = {
+_G.Kora = {
     compat = { provideExport = function(identity, name, fn)
         AddEventHandler(('__cfx_export_%s_%s'):format(identity, name), function(setCB) setCB(fn) end)
     end },

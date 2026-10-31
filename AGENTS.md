@@ -8,14 +8,14 @@ routing, compatibility, and `/me` world text; React owns presentation and
 keyboard autocomplete.
 
 The resource owns its own NUI frame. Use raw `SendNUIMessage`,
-`RegisterNUICallback`, and `SetNuiFocus` here; `QB.nui.*` targets kora_lib's frame.
-Pure kora_lib APIs such as `QB.keybind`, `QB.commands`, `QB.callback`,
-`QB.distance` and `QB.drawing` remain appropriate. Theme transport comes from
+`RegisterNUICallback`, and `SetNuiFocus` here; `Kora.nui.*` targets kora_lib's frame.
+Pure kora_lib APIs such as `Kora.keybind`, `Kora.commands`, `Kora.callback`,
+`Kora.distance` and `Kora.drawing` remain appropriate. Theme transport comes from
 the imported kora_theme bridge.
 
 ## Input and loops
 
-The T binding must stay a `QB.keybind.add` registration. Never add a permanent
+The T binding must stay a `Kora.keybind.add` registration. Never add a permanent
 control-polling thread. The only per-frame loop is activity-bound `/me` drawing
 and must exit as soon as the final overhead message expires.
 

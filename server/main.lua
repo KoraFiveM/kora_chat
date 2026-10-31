@@ -5,7 +5,7 @@ local commandTypes = {}
 local nextHookId = 0
 local nextMessageId = 0
 local suggestionRate = {}
-local messageCooldown = QB.timers.cooldown(Config.chat.minimumMessageInterval)
+local messageCooldown = Kora.timers.cooldown(Config.chat.minimumMessageInterval)
 
 local ICONS = {
     message = true,
@@ -18,9 +18,9 @@ local ICONS = {
 
 local function cleanMessage(value)
     if type(value) ~= 'string' then return nil end
-    value = QB.util.trim(value:gsub('[%z\1-\8\11\12\14-\31]', ''))
+    value = Kora.util.trim(value:gsub('[%z\1-\8\11\12\14-\31]', ''))
     if value == '' then return nil end
-    return QB.util.truncateUtf8(value, Config.chat.maxMessageLength)
+    return Kora.util.truncateUtf8(value, Config.chat.maxMessageLength)
 end
 
 local function permissionCheck(source, permission)
@@ -79,13 +79,13 @@ local function validateDefinition(name, definition)
     normalized.overhead = definition.overhead == true
     normalized.overheadDuration = math.floor(tonumber(definition.overheadDuration) or Config.chat.overheadDuration)
     assert(normalized.overheadDuration > 0 and normalized.overheadDuration <= 30000, 'overheadDuration must be between 1 and 30000ms.')
-    normalized.checkPermission = QB.util.isCallable(definition.checkPermission) and definition.checkPermission or permissionCheck
-    normalized.modeCallback = QB.util.isCallable(definition.modeCallback) and definition.modeCallback or nil
+    normalized.checkPermission = Kora.util.isCallable(definition.checkPermission) and definition.checkPermission or permissionCheck
+    normalized.modeCallback = Kora.util.isCallable(definition.modeCallback) and definition.modeCallback or nil
     return normalized
 end
 
 local removeMessageType
-local typeOwnership = QB.resources.serverRegistry(function(name)
+local typeOwnership = Kora.resources.serverRegistry(function(name)
     removeMessageType(name)
 end)
 
@@ -125,7 +125,7 @@ local function localTargets(source, range)
         if target and not included[target] and GetPlayerRoutingBucket(target) == bucket then
             local targetPed = GetPlayerPed(target)
             if targetPed and targetPed ~= 0 and (not DoesEntityExist or DoesEntityExist(targetPed)) then
-                local ok, nearby = pcall(QB.distance.player, target, coords, range)
+                local ok, nearby = pcall(Kora.distance.player, target, coords, range)
                 if ok and nearby then
                     included[target] = true
                     result[#result + 1] = target
@@ -248,7 +248,7 @@ local function registerMessageType(name, definition, explicitOwner)
     end
     if existing and existing.command then
         commandTypes[existing.command] = nil
-        QB.commands.remove(existing.command)
+        Kora.commands.remove(existing.command)
     end
     if registeredModes[name] then
         registeredModes[name] = nil
@@ -261,7 +261,7 @@ local function registerMessageType(name, definition, explicitOwner)
     if normalized.command then
         commandTypes[normalized.command] = name
         local commandName = normalized.command
-        QB.commands.add(commandName, normalized.help, {
+        Kora.commands.add(commandName, normalized.help, {
             { name = 'message', help = ('Message to send as %s'):format(normalized.label) },
         }, true, function(source, _, raw)
             local message = raw:match('^%S+%s+(.+)$')
@@ -284,7 +284,7 @@ removeMessageType = function(name)
     typeOwnership.untrack(name)
     if definition.command then
         commandTypes[definition.command] = nil
-        QB.commands.remove(definition.command)
+        Kora.commands.remove(definition.command)
     end
     if registeredModes[name] then
         registeredModes[name] = nil
@@ -344,7 +344,7 @@ local function addCompatMessage(target, message)
 end
 
 local function registerMessageHook(hook)
-    assert(QB.util.isCallable(hook), 'hook must be callable')
+    assert(Kora.util.isCallable(hook), 'hook must be callable')
     nextHookId = nextHookId + 1
     messageHooks[nextHookId] = {
         fn = hook,
@@ -355,7 +355,7 @@ end
 
 local function registerMode(modeData)
     if type(modeData) ~= 'table' or type(modeData.name) ~= 'string'
-        or type(modeData.displayName) ~= 'string' or not QB.util.isCallable(modeData.cb) then
+        or type(modeData.displayName) ~= 'string' or not Kora.util.isCallable(modeData.cb) then
         return false
     end
 
@@ -414,9 +414,9 @@ end
 exports('addMessage', addCompatMessage)
 exports('registerMessageHook', registerMessageHook)
 exports('registerMode', registerMode)
-QB.compat.provideExport('chat', 'addMessage', addCompatMessage)
-QB.compat.provideExport('chat', 'registerMessageHook', registerMessageHook)
-QB.compat.provideExport('chat', 'registerMode', registerMode)
+Kora.compat.provideExport('chat', 'addMessage', addCompatMessage)
+Kora.compat.provideExport('chat', 'registerMessageHook', registerMessageHook)
+Kora.compat.provideExport('chat', 'registerMode', registerMode)
 
 RegisterNetEvent('qbchat:send', function(message)
     dispatchMessage(source, 'say', message)
@@ -429,7 +429,7 @@ end)
 
 RegisterNetEvent('chat:init', function()
     local src = source
-    QB.commands.refresh(src)
+    Kora.commands.refresh(src)
     local types = {}
     for name, definition in pairs(messageTypes) do types[#types + 1] = publicType(name, definition) end
     TriggerClientEvent('qbchat:types', src, types)
@@ -456,7 +456,7 @@ RegisterCommand('say', function(source, _, raw)
     end
 end, false)
 
-QB.callback.register('qbchat:commandSuggestions', function(source, command, argumentIndex, query, parsedArgs)
+Kora.callback.register('qbchat:commandSuggestions', function(source, command, argumentIndex, query, parsedArgs)
     if type(command) ~= 'string' or #command > 64 or type(argumentIndex) ~= 'number'
         or type(query) ~= 'string' or #query > 128 or type(parsedArgs) ~= 'table' or #parsedArgs > 16 then
         return {}
@@ -475,7 +475,7 @@ QB.callback.register('qbchat:commandSuggestions', function(source, command, argu
     rate.count = rate.count + 1
     if rate.count > Config.chat.suggestionRequestsPerSecond then return {} end
 
-    local results = QB.commands.suggest(source, command, argumentIndex, query, parsedArgs)
+    local results = Kora.commands.suggest(source, command, argumentIndex, query, parsedArgs)
     while #results > Config.chat.suggestionResultLimit do results[#results] = nil end
     return results
 end)
