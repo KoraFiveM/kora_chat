@@ -95,10 +95,8 @@ local function rateAllowed(source)
 end
 
 local function characterName(source)
-    local ok, name = pcall(function()
-        return exports.kora_core:getPlayerData(source, { 'name' })
-    end)
-    if ok and type(name) == 'string' and name ~= '' then return name end
+    local name = exports.kora_core:getPlayerData(source, { 'name' })
+    if type(name) == 'string' and name ~= '' then return name end
     return GetPlayerName(source) or ('Player %d'):format(source)
 end
 
@@ -137,13 +135,9 @@ local function localTargets(source, range)
 end
 
 local function sendTargets(targets, payload)
-    if type(targets) == 'table' then
-        for _, rawTarget in ipairs(targets) do
-            local target = tonumber(rawTarget)
-            if target then TriggerClientEvent('qbchat:message', target, payload) end
-        end
-    else
-        local target = tonumber(targets)
+    if type(targets) ~= 'table' then targets = { targets } end
+    for _, rawTarget in ipairs(targets) do
+        local target = tonumber(rawTarget)
         if target then TriggerClientEvent('qbchat:message', target, payload) end
     end
 end

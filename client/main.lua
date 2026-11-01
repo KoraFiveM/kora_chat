@@ -59,8 +59,8 @@ local function cleanInput(value)
     value = value:gsub('[%z\1-\8\11\12\14-\31]', ''):match('^%s*(.-)%s*$')
     if value == '' then return nil end
 
-    local ok, length = pcall(utf8.len, value)
-    if not ok or not length then return nil end
+    local length = utf8.len(value)
+    if not length then return nil end
     if length <= Config.chat.maxMessageLength then return value end
 
     local offset = utf8.offset(value, Config.chat.maxMessageLength + 1)
