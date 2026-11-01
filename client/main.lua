@@ -112,11 +112,8 @@ if type(AddStateBagChangeHandler) == 'function' then
     end)
 end
 
--- Kora.keybind.add takes a single OPTIONS TABLE, not positional arguments. The
--- positional form asserted inside kora_lib, and because this is file scope the
--- throw aborted the rest of this chunk -- so RegisterNUICallback('qbchat:ready')
--- below never ran and the NUI's ready ping 404'd, which is what actually broke
--- chat rather than the keybind alone.
+-- Kora.keybind.add takes an options table; a bad call throws at file scope and
+-- aborts the NUI callback registrations below.
 Kora.keybind.add({
     name = 'qbchat_open',
     description = 'Open chat',

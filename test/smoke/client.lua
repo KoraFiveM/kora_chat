@@ -57,13 +57,8 @@ _G.Kora = {
     compat = { provideExport = function(identity, name, fn)
         AddEventHandler(('__cfx_export_%s_%s'):format(identity, name), function(setCB) setCB(fn) end)
     end },
-    -- Mirrors kora_lib's REAL Kora.keybind.add: one options table, with the same
-    -- assertions modules/keybind/client.lua makes. The previous mock took
-    -- positional (name, label, key, handler) -- a signature kora_lib has never
-    -- had -- so it validated a call that threw in game, and the resulting
-    -- file-scope error aborted the rest of client/main.lua before the
-    -- qbchat:ready NUI callback was ever registered. The mock passing is what
-    -- let that ship, so it asserts the real contract now.
+    -- Mirrors kora_lib's real Kora.keybind.add: one options table, same
+    -- assertions as modules/keybind/client.lua.
     keybind = { add = function(options)
         assert(type(options) == 'table', 'Kora.keybind.add requires an options table.')
         assert(type(options.name) == 'string' and options.name:match('^[%w_:%.%-]+$'),
