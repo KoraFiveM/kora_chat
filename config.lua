@@ -8,6 +8,10 @@ Config.chat = {
     messageLimit = 200,
     historyLimit = 50,
     fadeTimeout = 8000,
+    -- Share of the screen height (percent) the scrollable history may use while the input is open.
+    openHistoryHeight = 45,
+    -- Chat window placement in pixels. anchor = 'top' measures y from the top edge, 'bottom' from the bottom edge.
+    position = { anchor = 'top', x = 16, y = 40 },
     overheadDuration = 5000,
     overheadLimitPerPlayer = 3,
     suggestionLimit = 8,

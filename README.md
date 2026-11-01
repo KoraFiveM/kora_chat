@@ -5,7 +5,7 @@ IC chat, `/me`, global `/ooc`, kora_lib command metadata and dynamic argument
 completion, owner-tracked custom message types, and the common stock `chat`
 events/exports.
 
-The chat opens on `T` by default and is rebindable in FiveM settings. No thread
+The chat opens on `T` by default and is rebindable in FiveM settings. While the input is open the recent history is shown and can be scrolled with the mouse wheel or PageUp/PageDown (`Config.chat.openHistoryHeight`, percent of screen height). Window placement is `Config.chat.position = { anchor = 'top'|'bottom', x, y }` in pixels (default top, x 16, y 40). No thread
 polls for keyboard input.
 
 Start it after kora_lib and kora_core. `provide 'chat'` satisfies resources that

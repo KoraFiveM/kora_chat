@@ -17,10 +17,12 @@
 
 .chat-shell {
   position: absolute;
-  top: 16px;
+  top: 40px;
   left: 16px;
   width: min(480px, 38vw);
 }
+
+.chat-shell.anchor-bottom { display: flex; flex-direction: column; }
 
 .message-feed {
   display: flex;
@@ -34,6 +36,8 @@
 
 .message-feed.hidden { opacity: 0; }
 .message-feed.visible { opacity: 1; }
+.message-feed.open { pointer-events: auto; overscroll-behavior: contain; }
+.message-feed.empty { display: none; }
 
 .message-row {
   display: flex;
@@ -160,7 +164,7 @@ kbd {
 }
 
 @media (max-width: 640px) {
-  .chat-shell { top: 8px; left: 8px; width: calc(100vw - 16px); }
+  .chat-shell { left: 8px !important; width: calc(100vw - 16px); }
   .message-feed { max-height: 32vh; padding-right: 0; }
   .message-row { min-height: 36px; gap: 7px; border-radius: 8px; padding: 7px 8px; }
   .message-icon { width: 21px; height: 21px; }.message-icon svg { width: 13px; height: 13px; }
@@ -170,5 +174,5 @@ kbd {
 }
 
 @media (max-height: 560px) {
-  .chat-shell { top: 6px; }.message-feed { max-height: 24vh; }.suggestion-panel { max-height: 32vh; }
+  .message-feed { max-height: 24vh; }.suggestion-panel { max-height: 32vh; }
 }

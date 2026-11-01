@@ -35,6 +35,8 @@ const DEFAULT_CONFIG: ChatConfig = {
   suggestionLimit: 8,
   suggestionResultLimit: 20,
   suggestionDebounce: 125,
+  openHistoryHeight: 45,
+  position: { anchor: "top", x: 16, y: 40 },
 }
 
 const DEFAULT_TEMPLATES: Record<string, string> = {
@@ -113,7 +115,6 @@ export default function App() {
   const inputRowRef = useRef<HTMLDivElement>(null)
   const feedRef = useRef<HTMLDivElement>(null)
   const composerRef = useRef<HTMLElement>(null)
-  const configuredFeedMaxHeight = useRef<number>()
   const suggestionPanelRef = useRef<HTMLDivElement>(null)
   const fadeTimer = useRef<number>()
   const requestGeneration = useRef(0)
@@ -245,36 +246,31 @@ export default function App() {
 
   useLayoutEffect(() => {
     const feed = feedRef.current
-    const composer = composerRef.current
-    if (!open || !feed || !composer) {
-      configuredFeedMaxHeight.current = undefined
+    const inputRow = inputRowRef.current
+    if (!open || !feed || !inputRow) {
       setFeedMaxHeight(undefined)
       return
     }
 
+    // Derived only from values the feed height does not influence, so the
+    // limit cannot feed back into itself and collapse the history.
     const updateFeedHeight = () => {
       const feedBounds = feed.getBoundingClientRect()
-      const composerBounds = composer.getBoundingClientRect()
-      if (feed.offsetWidth === 0 || feedBounds.width === 0 || composerBounds.height === 0) return
+      if (feed.offsetWidth === 0 || feedBounds.width === 0) return
 
       const nuiScale = feedBounds.width / feed.offsetWidth
-      configuredFeedMaxHeight.current ??= Number.parseFloat(window.getComputedStyle(feed).maxHeight)
-      const configuredLimit = configuredFeedMaxHeight.current
-      if (!Number.isFinite(configuredLimit)) return
-      const availableHeight = (composerBounds.top - feedBounds.top - 12) / nuiScale
-      setFeedMaxHeight(Math.max(0, Math.min(configuredLimit, availableHeight)))
+      const limit = (config.openHistoryHeight ?? 45) / 100 * window.innerHeight
+      const bottomAnchored = config.position?.anchor === "bottom"
+      const room = bottomAnchored
+        ? feedBounds.bottom - 8
+        : window.innerHeight - feedBounds.top - 6 - inputOffset.y * window.innerHeight - inputRow.getBoundingClientRect().height * inputScale
+      setFeedMaxHeight(Math.max(0, Math.min(limit, room)) / nuiScale)
     }
 
     updateFeedHeight()
     window.addEventListener("resize", updateFeedHeight)
-    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updateFeedHeight)
-    observer?.observe(feed)
-    observer?.observe(composer)
-    return () => {
-      window.removeEventListener("resize", updateFeedHeight)
-      observer?.disconnect()
-    }
-  }, [inputOffset.y, inputScale, messages.length, open])
+    return () => window.removeEventListener("resize", updateFeedHeight)
+  }, [config.openHistoryHeight, config.position?.anchor, inputOffset.y, inputScale, open])
 
   useEffect(() => {
     setSelectedIndex(0)
@@ -345,6 +341,12 @@ export default function App() {
   }, [open, submit])
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "PageUp" || event.key === "PageDown") {
+      event.preventDefault()
+      const feed = feedRef.current
+      if (feed) feed.scrollBy({ top: (event.key === "PageUp" ? -1 : 1) * feed.clientHeight * 0.9 })
+      return
+    }
     if (event.key === "Escape") {
       event.preventDefault()
       submit(true)
@@ -406,10 +408,17 @@ export default function App() {
   }, [dynamicValues.length, loadingValues, showSuggestionPanel, visibleCommands.length])
 
   return (
-    <main className="chat-shell" data-types={Object.keys(types).length}>
+    <main
+      className={`chat-shell ${config.position?.anchor === "bottom" ? "anchor-bottom" : ""}`}
+      data-types={Object.keys(types).length}
+      style={{
+        [config.position?.anchor === "bottom" ? "bottom" : "top"]: `${config.position?.y ?? 40}px`,
+        left: `${config.position?.x ?? 16}px`,
+      }}
+    >
       <section
         aria-live="polite"
-        className={`message-feed ${feedVisible || open ? "visible" : "hidden"}`}
+        className={`message-feed ${feedVisible || open ? "visible" : "hidden"} ${open ? "open" : ""} ${messages.length === 0 ? "empty" : ""}`}
         ref={feedRef}
         style={feedMaxHeight === undefined ? undefined : { maxHeight: `${feedMaxHeight}px` }}
       >

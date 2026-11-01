@@ -6,6 +6,8 @@ export interface ChatConfig {
   suggestionLimit: number
   suggestionResultLimit: number
   suggestionDebounce: number
+  openHistoryHeight?: number
+  position?: { anchor?: "top" | "bottom"; x?: number; y?: number }
 }
 
 export interface CommandParam {
