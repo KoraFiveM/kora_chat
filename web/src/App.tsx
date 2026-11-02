@@ -17,6 +17,7 @@ import {
   parseCommand,
   renderCompatibilityTemplate,
 } from "./lib/chat"
+import { chatGeometry, HISTORY_GAP, INPUT_HEIGHT, nuiScale } from "./lib/layout"
 import { fetchNui, isNui, useNuiEvent } from "./lib/nui"
 import type {
   ChatConfig,
@@ -36,14 +37,17 @@ const DEFAULT_CONFIG: ChatConfig = {
   suggestionResultLimit: 20,
   suggestionDebounce: 125,
   historyHeight: 32,
+  historyPlacement: "auto",
   position: { anchor: "top", x: 16, y: 40 },
+  layoutOrigin: { x: 16, y: 16 },
 }
 
 const HISTORY_HEIGHT_RANGE = { min: 10, max: 90 }
 
 /**
- * Height of the fixed history region in vh. historyHeight wins; the older
- * openHistoryHeight is honoured so existing config copies keep their size.
+ * Height of the fixed history region in percent of the screen height.
+ * historyHeight wins; the older openHistoryHeight is honoured so existing
+ * config copies keep their size.
  */
 function resolveHistoryHeight(config: ChatConfig) {
   const configured = [config.historyHeight, config.openHistoryHeight, DEFAULT_CONFIG.historyHeight]
@@ -122,6 +126,7 @@ export default function App() {
   const [inputOffset, setInputOffset] = useState({ x: 0, y: 0 })
   const [inputScale, setInputScale] = useState(1)
   const [suggestionsAboveInput, setSuggestionsAboveInput] = useState(false)
+  const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight })
   const inputRef = useRef<HTMLInputElement>(null)
   const inputRowRef = useRef<HTMLDivElement>(null)
   const feedRef = useRef<HTMLDivElement>(null)
@@ -130,9 +135,17 @@ export default function App() {
   const fadeTimer = useRef<number>()
   const requestGeneration = useRef(0)
 
-  const anchorBottom = config.position?.anchor === "bottom"
-  const edgeOffset = config.position?.y ?? 40
-  const historyHeight = resolveHistoryHeight(config)
+  // The root is scaled by nuiScale (main.tsx), exactly like kora_hud's, so the
+  // block is laid out in that root pixel space rather than in vw/vh: a vh
+  // inside a scaled root covers more than its share of the real screen.
+  const rootScale = nuiScale(windowSize.width, windowSize.height)
+  const geometry = useMemo(() => chatGeometry({
+    viewport: { width: windowSize.width / rootScale, height: windowSize.height / rootScale },
+    config,
+    historyPercent: resolveHistoryHeight(config),
+    layout: { x: inputOffset.x, y: inputOffset.y, scale: inputScale },
+    inputHeight: windowSize.width <= 640 ? 44 : INPUT_HEIGHT,
+  }), [config, inputOffset.x, inputOffset.y, inputScale, rootScale, windowSize.height, windowSize.width])
 
   const suggestionList = useMemo(() => Object.values(suggestions), [suggestions])
   const commandMatches = useMemo(
@@ -248,6 +261,12 @@ export default function App() {
   useNuiEvent<string>("qbchat:typeRemove", (name) => {
     setTypes((current) => { const next = { ...current }; delete next[name]; return next })
   })
+
+  useEffect(() => {
+    const onResize = () => setWindowSize({ width: window.innerWidth, height: window.innerHeight })
+    window.addEventListener("resize", onResize)
+    return () => window.removeEventListener("resize", onResize)
+  }, [])
 
   useEffect(() => {
     void fetchNui("qbchat:ready")
@@ -399,28 +418,26 @@ export default function App() {
 
   return (
     <main
-      className={`chat-shell ${anchorBottom ? "anchor-bottom" : ""}`}
+      className="chat-shell"
       data-types={Object.keys(types).length}
+      // The shell box IS the input box: its top-left is the /hudlayout "Chat
+      // input" spot, and the history hangs off it out of flow, so neither the
+      // messages nor opening/closing the input can move it.
       style={{
-        [anchorBottom ? "bottom" : "top"]: `${edgeOffset}px`,
-        left: `${config.position?.x ?? 16}px`,
-        // The saved /hudlayout placement moves the whole window (history and
-        // composer together) so the input always sits directly under the history.
-        transform: `translate(${inputOffset.x * 100}vw, ${inputOffset.y * 100}vh) scale(${inputScale})`,
-        transformOrigin: anchorBottom ? "bottom left" : "top left",
+        top: `${geometry.top}px`,
+        left: `${geometry.left}px`,
+        transform: `scale(${geometry.scale})`,
+        transformOrigin: "top left",
       }}
     >
       <section
         aria-live="polite"
-        className={`message-feed ${feedVisible || open ? "visible" : "hidden"} ${open ? "open" : ""}`}
+        className={`message-feed ${geometry.historyPlacement} ${feedVisible || open ? "visible" : "hidden"} ${open ? "open" : ""}`}
         ref={feedRef}
-        // The history is a fixed-size region (never content-sized) with the
-        // newest message at its bottom edge, so adding messages cannot move
-        // the composer that sits directly beneath it.
         style={{
-          "--history-height": `${historyHeight}vh`,
-          "--chat-edge": `${edgeOffset}px`,
-        } as React.CSSProperties}
+          height: `${geometry.historyHeight}px`,
+          [geometry.historyPlacement === "above" ? "bottom" : "top"]: `calc(100% + ${HISTORY_GAP}px)`,
+        }}
       >
         {messages.map((message) => <MessageRow key={message.id} message={message} templates={templates} />)}
       </section>

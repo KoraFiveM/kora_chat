@@ -1,11 +1,12 @@
 import React from "react"
 import ReactDOM from "react-dom/client"
 import App from "./App"
+import { nuiScale } from "./lib/layout"
 import "./styles/globals.css"
 
 const scaleNui = () => {
   const root = document.getElementById("root")!
-  const scale = Math.min(2, Math.max(0.5, Math.min(window.innerWidth / 1920, window.innerHeight / 1080)))
+  const scale = nuiScale(window.innerWidth, window.innerHeight)
   root.style.width = `${window.innerWidth / scale}px`
   root.style.height = `${window.innerHeight / scale}px`
   root.style.transform = `scale(${scale})`

@@ -92,100 +92,103 @@ describe("chat interactions", () => {
     await waitFor(() => expect(screen.queryByText("System message")).not.toBeInTheDocument())
   })
 
-  it("moves and scales the whole chat window so the composer stays under the history", async () => {
+  it("places the input box itself at the /hudlayout spot, in root pixels rather than vw/vh", async () => {
     const { container } = render(<App />)
     nui("qbchat:open", {})
     await screen.findByLabelText("Chat message")
-    act(() => nui("qbchat:inputOffset", { x: 0.25, y: -0.1, scale: 1.25 }))
+    act(() => nui("qbchat:inputOffset", { x: 0.25, y: 0.5, scale: 1.25 }))
 
-    await waitFor(() => expect(container.querySelector(".chat-shell")).toHaveStyle({ transform: "translate(25vw, -10vh) scale(1.25)" }))
-    expect(container.querySelector(".composer")).not.toHaveStyle({ transform: "translate(25vw, -10vh) scale(1.25)" })
+    // jsdom is 1024x768, so the shared NUI root is 1920x1440 root pixels.
+    const shell = container.querySelector<HTMLElement>(".chat-shell")!
+    await waitFor(() => expect(shell).toHaveStyle({ left: `${16 + 0.25 * 1920}px`, top: `${16 + 0.5 * 1440}px` }))
+    expect(shell.style.transform).toBe("scale(1.25)")
+    expect(shell.style.transformOrigin).toBe("top left")
     expect(container.querySelector(".chat-shell > .composer")).not.toBeNull()
   })
 
-  describe("composer position does not change as messages are added", () => {
+  describe("the chat block does not move or resize as messages are added", () => {
     const rule = (selector: string) => {
       const start = css.indexOf(`${selector} {`)
       expect(start, `${selector} rule`).toBeGreaterThanOrEqual(0)
       return css.slice(start, css.indexOf("}", start))
     }
 
-    // jsdom has no layout engine, so the position guarantee is asserted as the
-    // contract that produces it: a fixed-size history region (inline size
-    // variables independent of the messages, no content-sized max-height),
-    // bottom-aligned rows, and a composer that is a sibling after the region.
-    function feedSizing(container: HTMLElement) {
+    // jsdom has no layout engine, so the guarantee is asserted as the contract
+    // that produces it: inline geometry computed from config and layout only,
+    // an out-of-flow history with a fixed height, and an input-sized shell.
+    function blockGeometry(container: HTMLElement) {
+      const shell = container.querySelector<HTMLElement>(".chat-shell")!
       const feed = container.querySelector<HTMLElement>(".message-feed")!
       return {
-        classes: feed.className.replace(/\b(visible|hidden)\b/g, "").replace(/\s+/g, " ").trim(),
-        height: feed.style.getPropertyValue("--history-height"),
-        edge: feed.style.getPropertyValue("--chat-edge"),
+        shell: shell.getAttribute("style"),
+        placement: feed.classList.contains("above") ? "above" : feed.classList.contains("below") ? "below" : "none",
+        height: feed.style.height,
+        top: feed.style.top,
+        bottom: feed.style.bottom,
       }
     }
 
-    it("sizes the history region from config only, never from the message count", async () => {
+    it("keeps the shell and history geometry identical from 0 to 200 messages, open and closed", async () => {
       const { container } = render(<App />)
+      act(() => nui("qbchat:inputOffset", { x: 0.05, y: 0.7, scale: 1.1 }))
+      const closed = blockGeometry(container)
+      expect(closed.placement).toBe("above")
+      expect(closed.bottom).toBe("calc(100% + 6px)")
+      expect(container.querySelector(".composer-spacer")).not.toBeNull()
+
       nui("qbchat:open", {})
       await screen.findByLabelText("Chat message")
-      const empty = feedSizing(container)
-      expect(empty.height).toBe("32vh")
-      expect(empty.edge).toBe("40px")
-      expect(container.querySelector(".message-feed")).not.toHaveClass("empty")
+      expect(blockGeometry(container)).toEqual(closed)
 
       act(() => {
         for (let index = 0; index < 200; index += 1) {
           nui("qbchat:message", { id: `size:${index}`, args: [`message ${index}`] })
         }
       })
-      expect(feedSizing(container)).toEqual(empty)
+      expect(blockGeometry(container)).toEqual(closed)
 
       act(() => nui("qbchat:clearMessages", {}))
-      expect(feedSizing(container)).toEqual(empty)
+      expect(blockGeometry(container)).toEqual(closed)
     })
 
-    it("keeps the same region size while the input is closed", () => {
+    it("sizes the history as historyHeight percent of the screen, honouring the legacy key and clamping", () => {
       const { container } = render(<App />)
-      act(() => nui("qbchat:message", { id: "closed", args: ["one"] }))
-      expect(feedSizing(container).height).toBe("32vh")
-      expect(container.querySelector(".composer-spacer")).not.toBeNull()
-    })
-
-    it("honours historyHeight, the legacy openHistoryHeight, and clamps bad values", () => {
-      const { container } = render(<App />)
+      const height = () => parseFloat(container.querySelector<HTMLElement>(".message-feed")!.style.height)
+      expect(height()).toBeCloseTo(0.32 * 1440, 6)
       act(() => nui("qbchat:init", { config: { historyHeight: 50 } }))
-      expect(feedSizing(container).height).toBe("50vh")
+      expect(height()).toBeCloseTo(0.5 * 1440, 6)
       act(() => nui("qbchat:init", { config: { historyHeight: 500 } }))
-      expect(feedSizing(container).height).toBe("90vh")
+      expect(height()).toBeLessThanOrEqual(1440)
       act(() => nui("qbchat:init", { config: { historyHeight: undefined, openHistoryHeight: 45 } }))
-      expect(feedSizing(container).height).toBe("45vh")
+      expect(height()).toBeCloseTo(0.45 * 1440, 6)
     })
 
-    it("uses the configured position edge for the size clamp, for top and bottom anchors", () => {
+    it("uses Config.chat.position until the player places the chat, for top and bottom anchors", () => {
       const { container } = render(<App />)
-      act(() => nui("qbchat:init", { config: { position: { anchor: "bottom", x: 16, y: 120 } } }))
-      expect(feedSizing(container).edge).toBe("120px")
-      expect(container.querySelector(".chat-shell")).toHaveStyle({ bottom: "120px" })
+      const shell = container.querySelector<HTMLElement>(".chat-shell")!
+      expect(shell).toHaveStyle({ left: "16px", top: `${40 + 0.32 * 1440 + 6}px` })
+      act(() => nui("qbchat:init", { config: { position: { anchor: "bottom", x: 20, y: 120 } } }))
+      expect(shell).toHaveStyle({ left: "20px", top: `${1440 - 120 - 48}px` })
     })
 
-    it("places the composer directly after the history region, with and without a layout", async () => {
+    it("puts the history below an input placed at the top of the screen", () => {
       const { container } = render(<App />)
-      nui("qbchat:open", {})
-      await screen.findByLabelText("Chat message")
-      act(() => nui("qbchat:inputOffset", { x: 0.1, y: 0.2, scale: 1.2 }))
-      const children = Array.from(container.querySelector(".chat-shell")!.children)
-      expect(children.map((child) => child.className.split(" ")[0])).toEqual(["message-feed", "composer"])
-      expect(container.querySelector(".composer-spacer")).toBeNull()
+      act(() => nui("qbchat:inputOffset", { x: 0, y: 0.02, scale: 1 }))
+      const feed = container.querySelector<HTMLElement>(".message-feed")!
+      expect(feed).toHaveClass("below")
+      expect(feed.style.top).toBe("calc(100% + 6px)")
     })
 
-    it("styles the history as a fixed, bottom-aligned, transparent region", () => {
+    it("styles the history as an out-of-flow, transparent region with no content sizing", () => {
       const feed = rule(".message-feed")
-      expect(feed).toMatch(/\bheight: min\(var\(--history-height/)
-      expect(feed).toMatch(/flex: none/)
-      expect(feed).not.toMatch(/max-height|min-height/)
+      expect(feed).toMatch(/position: absolute/)
+      expect(feed).not.toMatch(/max-height|min-height|\bheight:/)
       expect(feed).not.toMatch(/background|border/)
-      expect(css).toMatch(/\.message-feed > :first-child \{ margin-top: auto; \}/)
+      expect(css).toMatch(/\.message-feed\.above > :first-child \{ margin-top: auto; \}/)
       expect(css).not.toMatch(/\.message-feed[^{]*\{[^}]*max-height/)
-      expect(css).not.toMatch(/\.message-feed\.empty/)
+      expect(rule(".chat-shell")).not.toMatch(/display: flex|height/)
+      expect(rule(".composer")).not.toMatch(/margin/)
+      expect(rule(".composer-spacer")).toMatch(/height: 48px/)
       expect(rule(".message-row")).toMatch(/flex: none/)
     })
 

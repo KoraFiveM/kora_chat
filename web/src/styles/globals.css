@@ -15,23 +15,23 @@
   }
 }
 
+/* The shell is exactly the input box (same size as kora_hud's "Chat input"
+   proxy); App.tsx places its top-left from lib/layout.ts. */
 .chat-shell {
   position: absolute;
-  top: 40px;
+  top: 0;
   left: 16px;
-  display: flex;
   width: min(480px, 38vw);
-  flex-direction: column;
 }
 
-/* The history is a fixed-height region, never sized by its content: the
-   composer sits directly below it and therefore never moves as messages
-   arrive. --history-height / --chat-edge come from Config.chat in App.tsx;
-   the min() keeps the region plus input on screen on short displays. */
+/* The history is out of flow and has a fixed height from lib/layout.ts, never
+   sized by its content, so neither it nor the input can move as messages
+   arrive. App.tsx pins it just above (bottom) or below (top) the input. */
 .message-feed {
+  position: absolute;
+  left: 0;
   display: flex;
-  height: min(var(--history-height, 32vh), calc(100vh - var(--chat-edge, 40px) - 64px));
-  flex: none;
+  width: 100%;
   flex-direction: column;
   gap: 6px;
   overflow: hidden;
@@ -39,9 +39,10 @@
   transition: opacity 150ms ease-in;
 }
 
-/* Bottom-align the messages without flex-end, which would make the oldest
-   rows unreachable once the content overflows and scrolls. */
-.message-feed > :first-child { margin-top: auto; }
+/* Above the input the newest message sits next to it at the bottom. Done
+   without flex-end, which would make the oldest rows unreachable once the
+   content overflows and scrolls. Below the input rows simply start at the top. */
+.message-feed.above > :first-child { margin-top: auto; }
 
 .message-feed.hidden { opacity: 0; }
 .message-feed.visible { opacity: 1; }
@@ -88,13 +89,11 @@
 
 .composer {
   position: relative;
-  margin-top: 6px;
   pointer-events: auto;
 }
 
-/* Stands in for the composer while chat is closed so a bottom-anchored
-   window keeps its history in the same place when the input opens. */
-.composer-spacer { height: 54px; flex: none; }
+/* Keeps the shell input-sized while chat is closed. */
+.composer-spacer { height: 48px; }
 
 .input-row {
   display: flex;
@@ -182,7 +181,7 @@ kbd {
   .message-row { min-height: 36px; gap: 7px; border-radius: 8px; padding: 7px 8px; }
   .message-icon { width: 21px; height: 21px; }.message-icon svg { width: 13px; height: 13px; }
   .message-text { font-size: 13px; line-height: 17px; }.message-meta { gap: 5px; }
-  .composer-spacer { height: 50px; }
+  .composer-spacer { height: 44px; }
   .input-row { height: 44px; gap: 7px; padding: 0 10px; }.input-row kbd { display: none; }
   .suggestion-panel { max-height: 40vh; }.suggestion-help { white-space: normal; }
 }

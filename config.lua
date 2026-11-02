@@ -9,15 +9,25 @@ Config.chat = {
     historyLimit = 50,
     fadeTimeout = 8000,
     -- Height of the chat history region, in percent of the screen height (10-90).
-    -- The region has this fixed size whether or not it holds messages, with the newest
-    -- message at its bottom edge, so the input directly beneath it never moves as messages
-    -- arrive. Older messages scroll with the mouse wheel / PageUp / PageDown while the input
-    -- is open. The older openHistoryHeight key is still honoured when historyHeight is unset.
+    -- The region has this fixed size whether or not it holds messages, so neither it nor the
+    -- input moves as messages arrive. It shrinks only if the screen has less room than this
+    -- next to the input. Older messages scroll with the mouse wheel / PageUp / PageDown while
+    -- the input is open. The older openHistoryHeight key is still honoured when historyHeight
+    -- is unset.
     historyHeight = 32,
-    -- Chat window placement in pixels. anchor = 'top' measures y from the top edge to the top of
-    -- the history region (the input sits historyHeight below it); 'bottom' measures y from the
-    -- bottom edge of the screen to the bottom of the input.
+    -- Where the history sits relative to the input: 'above' (newest message right above the
+    -- input), 'below', or 'auto' (above when there is room for historyHeight, otherwise below,
+    -- e.g. when the input is placed at the top of the screen with /hudlayout).
+    historyPlacement = 'auto',
+    -- Default placement in pixels, used while the player has no /hudlayout chat placement (never
+    -- moved, or reset). anchor = 'top' measures y from the top edge to the top of the history
+    -- region (the input sits historyHeight below it); 'bottom' measures y from the bottom edge
+    -- of the screen to the bottom of the input.
     position = { anchor = 'top', x = 16, y = 40 },
+    -- Zero point of kora_hud's /hudlayout "Chat input" box, in pixels from the top-left of the
+    -- screen at 1080p. A saved placement puts the input exactly where that box was dropped;
+    -- change this only if the kora_hud proxy's default corner is changed.
+    layoutOrigin = { x = 16, y = 16 },
     overheadDuration = 5000,
     overheadLimitPerPlayer = 3,
     suggestionLimit = 8,

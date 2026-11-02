@@ -10,7 +10,11 @@ export interface ChatConfig {
   /** @deprecated Use historyHeight. */
   openHistoryHeight?: number
   position?: { anchor?: "top" | "bottom"; x?: number; y?: number }
+  historyPlacement?: HistoryPlacement
+  layoutOrigin?: { x?: number; y?: number }
 }
+
+export type HistoryPlacement = "auto" | "above" | "below"
 
 export interface CommandParam {
   name?: string
