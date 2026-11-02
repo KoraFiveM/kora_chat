@@ -182,6 +182,9 @@ export default function App() {
     setDynamicValues([])
     scheduleFade()
   })
+  useNuiEvent<Record<string, never>>("qbchat:clearMessages", () => {
+    setMessages([])
+  })
   useNuiEvent<Record<string, never>>("qbchat:clear", () => {
     setMessages([])
     setHistory([])
@@ -263,14 +266,14 @@ export default function App() {
       const bottomAnchored = config.position?.anchor === "bottom"
       const room = bottomAnchored
         ? feedBounds.bottom - 8
-        : window.innerHeight - feedBounds.top - 6 - inputOffset.y * window.innerHeight - inputRow.getBoundingClientRect().height * inputScale
+        : window.innerHeight - feedBounds.top - 6 * nuiScale - inputRow.getBoundingClientRect().height
       setFeedMaxHeight(Math.max(0, Math.min(limit, room)) / nuiScale)
     }
 
     updateFeedHeight()
     window.addEventListener("resize", updateFeedHeight)
     return () => window.removeEventListener("resize", updateFeedHeight)
-  }, [config.openHistoryHeight, config.position?.anchor, inputOffset.y, inputScale, open])
+  }, [config.openHistoryHeight, config.position?.anchor, inputOffset.x, inputOffset.y, inputScale, open])
 
   useEffect(() => {
     setSelectedIndex(0)
@@ -414,6 +417,10 @@ export default function App() {
       style={{
         [config.position?.anchor === "bottom" ? "bottom" : "top"]: `${config.position?.y ?? 40}px`,
         left: `${config.position?.x ?? 16}px`,
+        // The saved /hudlayout placement moves the whole window (history and
+        // composer together) so the input always sits directly under the history.
+        transform: `translate(${inputOffset.x * 100}vw, ${inputOffset.y * 100}vh) scale(${inputScale})`,
+        transformOrigin: config.position?.anchor === "bottom" ? "bottom left" : "top left",
       }}
     >
       <section
@@ -430,7 +437,6 @@ export default function App() {
           className="composer"
           aria-label="Chat input"
           ref={composerRef}
-          style={{ transform: `translate(${inputOffset.x * 100}vw, ${inputOffset.y * 100}vh) scale(${inputScale})`, transformOrigin: "top left" }}
         >
           <div className="input-row" ref={inputRowRef}>
             <Terminal aria-hidden="true" size={16} />

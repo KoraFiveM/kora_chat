@@ -24,6 +24,8 @@ _G.SetNuiFocus = function(focus, cursor) focusCalls[#focusCalls + 1] = { focus, 
 _G.IsNuiFocused = function() return otherNuiFocused end
 _G.TriggerServerEvent = function(name, ...) serverEvents[#serverEvents + 1] = { name = name, ... } end
 _G.ExecuteCommand = function(command) executed[#executed + 1] = command end
+local registeredCommands = {}
+_G.RegisterCommand = function(name, cb) registeredCommands[name] = cb end
 _G.GetRegisteredCommands = function()
     return { { name = 'help' }, { name = '+qbchat_open' }, { name = '-qbchat_open' } }
 end
@@ -165,6 +167,15 @@ H.test('the HUD layout event updates and clamps the chat input layout', function
     H.equal(layout.x, 0)
     H.equal(layout.y, 0)
     H.equal(layout.scale, 1)
+end)
+
+H.test('/clearchat clears only the local feed and is suggested on ready', function()
+    H.truthy(registeredCommands.clearchat, 'command registered from Config.clearChat')
+    nuiCallbacks['qbchat:ready']({}, function() end)
+    local suggestion = latestAction('qbchat:suggestionAdd').data
+    H.equal(suggestion.name, 'clearchat')
+    registeredCommands.clearchat()
+    H.equal(latestAction('qbchat:clearMessages').action, 'qbchat:clearMessages')
 end)
 
 H.test('T does not steal focus from another active NUI', function()

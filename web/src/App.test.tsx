@@ -83,14 +83,23 @@ describe("chat interactions", () => {
     await waitFor(() => expect(screen.queryByText("System message")).not.toBeInTheDocument())
   })
 
-  it("moves and scales only the chat composer when the HUD supplies its layout", async () => {
+  it("clearMessages empties the feed but keeps the typed-message recall history", async () => {
+    render(<App />)
+    nui("qbchat:message", { id: "one", args: ["System message"] })
+    await screen.findByText("System message")
+    nui("qbchat:clearMessages", {})
+    await waitFor(() => expect(screen.queryByText("System message")).not.toBeInTheDocument())
+  })
+
+  it("moves and scales the whole chat window so the composer stays under the history", async () => {
     const { container } = render(<App />)
     nui("qbchat:open", {})
     await screen.findByLabelText("Chat message")
     act(() => nui("qbchat:inputOffset", { x: 0.25, y: -0.1, scale: 1.25 }))
 
-    await waitFor(() => expect(container.querySelector(".composer")).toHaveStyle({ transform: "translate(25vw, -10vh) scale(1.25)" }))
-    expect(container.querySelector(".message-feed")).not.toHaveStyle({ transform: "translate(25vw, -10vh) scale(1.25)" })
+    await waitFor(() => expect(container.querySelector(".chat-shell")).toHaveStyle({ transform: "translate(25vw, -10vh) scale(1.25)" }))
+    expect(container.querySelector(".composer")).not.toHaveStyle({ transform: "translate(25vw, -10vh) scale(1.25)" })
+    expect(container.querySelector(".chat-shell > .composer")).not.toBeNull()
   })
 
   it("keeps only the newest two hundred received messages", () => {

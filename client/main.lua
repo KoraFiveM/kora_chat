@@ -253,6 +253,20 @@ local function refreshNativeCommands()
     send('qbchat:suggestions', suggestions)
 end
 
+local function clearChatCommandName()
+    local settings = Config.clearChat
+    if type(settings) ~= 'table' or settings.enabled ~= true then return nil end
+    local name = type(settings.command) == 'string' and settings.command:gsub('^/+', '') or 'clearchat'
+    return name:match('^[%w_:%.%-]+$') and name or 'clearchat'
+end
+
+local clearChatName = clearChatCommandName()
+if clearChatName then
+    RegisterCommand(clearChatName, function()
+        send('qbchat:clearMessages', {})
+    end, false)
+end
+
 RegisterNUICallback('qbchat:ready', function(_, cb)
     nuiReady = true
     cb({ ok = true })
@@ -264,6 +278,7 @@ RegisterNUICallback('qbchat:ready', function(_, cb)
     loadHudInputLayout()
     send('qbchat:inputOffset', inputLayout)
     refreshNativeCommands()
+    if clearChatName then addSuggestion(clearChatName, 'Clear your own chat history', {}) end
     TriggerServerEvent('chat:init')
 
     if pendingOpen then

@@ -20,6 +20,10 @@ Config.chat = {
     suggestionRequestsPerSecond = 10,
 }
 
+-- Local /clearchat command: wipes only the player own chat feed on their client.
+-- command is the name without the slash.
+Config.clearChat = { enabled = true, command = 'clearchat' }
+
 -- Additional declarative types use the same schema as the
 -- registerMessageType server export. Built-ins (say, me, ooc) are registered
 -- by server/main.lua so their behavior cannot drift from the documented API.
