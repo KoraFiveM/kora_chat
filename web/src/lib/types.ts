@@ -6,6 +6,8 @@ export interface ChatConfig {
   suggestionLimit: number
   suggestionResultLimit: number
   suggestionDebounce: number
+  historyHeight?: number
+  /** @deprecated Use historyHeight. */
   openHistoryHeight?: number
   position?: { anchor?: "top" | "bottom"; x?: number; y?: number }
 }

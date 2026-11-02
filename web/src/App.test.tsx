@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import App from "./App"
+import css from "./styles/globals.css?raw"
 
 function nui(action: string, data: unknown) {
   window.dispatchEvent(new MessageEvent("message", { data: { action, data } }))
@@ -100,6 +101,98 @@ describe("chat interactions", () => {
     await waitFor(() => expect(container.querySelector(".chat-shell")).toHaveStyle({ transform: "translate(25vw, -10vh) scale(1.25)" }))
     expect(container.querySelector(".composer")).not.toHaveStyle({ transform: "translate(25vw, -10vh) scale(1.25)" })
     expect(container.querySelector(".chat-shell > .composer")).not.toBeNull()
+  })
+
+  describe("composer position does not change as messages are added", () => {
+    const rule = (selector: string) => {
+      const start = css.indexOf(`${selector} {`)
+      expect(start, `${selector} rule`).toBeGreaterThanOrEqual(0)
+      return css.slice(start, css.indexOf("}", start))
+    }
+
+    // jsdom has no layout engine, so the position guarantee is asserted as the
+    // contract that produces it: a fixed-size history region (inline size
+    // variables independent of the messages, no content-sized max-height),
+    // bottom-aligned rows, and a composer that is a sibling after the region.
+    function feedSizing(container: HTMLElement) {
+      const feed = container.querySelector<HTMLElement>(".message-feed")!
+      return {
+        classes: feed.className.replace(/\b(visible|hidden)\b/g, "").replace(/\s+/g, " ").trim(),
+        height: feed.style.getPropertyValue("--history-height"),
+        edge: feed.style.getPropertyValue("--chat-edge"),
+      }
+    }
+
+    it("sizes the history region from config only, never from the message count", async () => {
+      const { container } = render(<App />)
+      nui("qbchat:open", {})
+      await screen.findByLabelText("Chat message")
+      const empty = feedSizing(container)
+      expect(empty.height).toBe("32vh")
+      expect(empty.edge).toBe("40px")
+      expect(container.querySelector(".message-feed")).not.toHaveClass("empty")
+
+      act(() => {
+        for (let index = 0; index < 200; index += 1) {
+          nui("qbchat:message", { id: `size:${index}`, args: [`message ${index}`] })
+        }
+      })
+      expect(feedSizing(container)).toEqual(empty)
+
+      act(() => nui("qbchat:clearMessages", {}))
+      expect(feedSizing(container)).toEqual(empty)
+    })
+
+    it("keeps the same region size while the input is closed", () => {
+      const { container } = render(<App />)
+      act(() => nui("qbchat:message", { id: "closed", args: ["one"] }))
+      expect(feedSizing(container).height).toBe("32vh")
+      expect(container.querySelector(".composer-spacer")).not.toBeNull()
+    })
+
+    it("honours historyHeight, the legacy openHistoryHeight, and clamps bad values", () => {
+      const { container } = render(<App />)
+      act(() => nui("qbchat:init", { config: { historyHeight: 50 } }))
+      expect(feedSizing(container).height).toBe("50vh")
+      act(() => nui("qbchat:init", { config: { historyHeight: 500 } }))
+      expect(feedSizing(container).height).toBe("90vh")
+      act(() => nui("qbchat:init", { config: { historyHeight: undefined, openHistoryHeight: 45 } }))
+      expect(feedSizing(container).height).toBe("45vh")
+    })
+
+    it("uses the configured position edge for the size clamp, for top and bottom anchors", () => {
+      const { container } = render(<App />)
+      act(() => nui("qbchat:init", { config: { position: { anchor: "bottom", x: 16, y: 120 } } }))
+      expect(feedSizing(container).edge).toBe("120px")
+      expect(container.querySelector(".chat-shell")).toHaveStyle({ bottom: "120px" })
+    })
+
+    it("places the composer directly after the history region, with and without a layout", async () => {
+      const { container } = render(<App />)
+      nui("qbchat:open", {})
+      await screen.findByLabelText("Chat message")
+      act(() => nui("qbchat:inputOffset", { x: 0.1, y: 0.2, scale: 1.2 }))
+      const children = Array.from(container.querySelector(".chat-shell")!.children)
+      expect(children.map((child) => child.className.split(" ")[0])).toEqual(["message-feed", "composer"])
+      expect(container.querySelector(".composer-spacer")).toBeNull()
+    })
+
+    it("styles the history as a fixed, bottom-aligned, transparent region", () => {
+      const feed = rule(".message-feed")
+      expect(feed).toMatch(/\bheight: min\(var\(--history-height/)
+      expect(feed).toMatch(/flex: none/)
+      expect(feed).not.toMatch(/max-height|min-height/)
+      expect(feed).not.toMatch(/background|border/)
+      expect(css).toMatch(/\.message-feed > :first-child \{ margin-top: auto; \}/)
+      expect(css).not.toMatch(/\.message-feed[^{]*\{[^}]*max-height/)
+      expect(css).not.toMatch(/\.message-feed\.empty/)
+      expect(rule(".message-row")).toMatch(/flex: none/)
+    })
+
+    it("takes the suggestion panel out of the flow so it cannot move the input", () => {
+      expect(rule(".suggestion-panel")).toMatch(/position: absolute/)
+      expect(rule(".suggestion-panel.above-input")).toMatch(/bottom: calc\(100% \+ 6px\)/)
+    })
   })
 
   it("keeps only the newest two hundred received messages", () => {

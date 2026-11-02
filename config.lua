@@ -8,9 +8,15 @@ Config.chat = {
     messageLimit = 200,
     historyLimit = 50,
     fadeTimeout = 8000,
-    -- Share of the screen height (percent) the scrollable history may use while the input is open.
-    openHistoryHeight = 45,
-    -- Chat window placement in pixels. anchor = 'top' measures y from the top edge, 'bottom' from the bottom edge.
+    -- Height of the chat history region, in percent of the screen height (10-90).
+    -- The region has this fixed size whether or not it holds messages, with the newest
+    -- message at its bottom edge, so the input directly beneath it never moves as messages
+    -- arrive. Older messages scroll with the mouse wheel / PageUp / PageDown while the input
+    -- is open. The older openHistoryHeight key is still honoured when historyHeight is unset.
+    historyHeight = 32,
+    -- Chat window placement in pixels. anchor = 'top' measures y from the top edge to the top of
+    -- the history region (the input sits historyHeight below it); 'bottom' measures y from the
+    -- bottom edge of the screen to the bottom of the input.
     position = { anchor = 'top', x = 16, y = 40 },
     overheadDuration = 5000,
     overheadLimitPerPlayer = 3,

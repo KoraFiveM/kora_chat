@@ -35,8 +35,20 @@ const DEFAULT_CONFIG: ChatConfig = {
   suggestionLimit: 8,
   suggestionResultLimit: 20,
   suggestionDebounce: 125,
-  openHistoryHeight: 45,
+  historyHeight: 32,
   position: { anchor: "top", x: 16, y: 40 },
+}
+
+const HISTORY_HEIGHT_RANGE = { min: 10, max: 90 }
+
+/**
+ * Height of the fixed history region in vh. historyHeight wins; the older
+ * openHistoryHeight is honoured so existing config copies keep their size.
+ */
+function resolveHistoryHeight(config: ChatConfig) {
+  const configured = [config.historyHeight, config.openHistoryHeight, DEFAULT_CONFIG.historyHeight]
+    .find((value): value is number => typeof value === "number" && Number.isFinite(value))!
+  return Math.max(HISTORY_HEIGHT_RANGE.min, Math.min(HISTORY_HEIGHT_RANGE.max, configured))
 }
 
 const DEFAULT_TEMPLATES: Record<string, string> = {
@@ -110,7 +122,6 @@ export default function App() {
   const [inputOffset, setInputOffset] = useState({ x: 0, y: 0 })
   const [inputScale, setInputScale] = useState(1)
   const [suggestionsAboveInput, setSuggestionsAboveInput] = useState(false)
-  const [feedMaxHeight, setFeedMaxHeight] = useState<number>()
   const inputRef = useRef<HTMLInputElement>(null)
   const inputRowRef = useRef<HTMLDivElement>(null)
   const feedRef = useRef<HTMLDivElement>(null)
@@ -118,6 +129,10 @@ export default function App() {
   const suggestionPanelRef = useRef<HTMLDivElement>(null)
   const fadeTimer = useRef<number>()
   const requestGeneration = useRef(0)
+
+  const anchorBottom = config.position?.anchor === "bottom"
+  const edgeOffset = config.position?.y ?? 40
+  const historyHeight = resolveHistoryHeight(config)
 
   const suggestionList = useMemo(() => Object.values(suggestions), [suggestions])
   const commandMatches = useMemo(
@@ -246,34 +261,6 @@ export default function App() {
   useEffect(() => {
     feedRef.current?.scrollTo({ top: feedRef.current.scrollHeight })
   }, [messages, open])
-
-  useLayoutEffect(() => {
-    const feed = feedRef.current
-    const inputRow = inputRowRef.current
-    if (!open || !feed || !inputRow) {
-      setFeedMaxHeight(undefined)
-      return
-    }
-
-    // Derived only from values the feed height does not influence, so the
-    // limit cannot feed back into itself and collapse the history.
-    const updateFeedHeight = () => {
-      const feedBounds = feed.getBoundingClientRect()
-      if (feed.offsetWidth === 0 || feedBounds.width === 0) return
-
-      const nuiScale = feedBounds.width / feed.offsetWidth
-      const limit = (config.openHistoryHeight ?? 45) / 100 * window.innerHeight
-      const bottomAnchored = config.position?.anchor === "bottom"
-      const room = bottomAnchored
-        ? feedBounds.bottom - 8
-        : window.innerHeight - feedBounds.top - 6 * nuiScale - inputRow.getBoundingClientRect().height
-      setFeedMaxHeight(Math.max(0, Math.min(limit, room)) / nuiScale)
-    }
-
-    updateFeedHeight()
-    window.addEventListener("resize", updateFeedHeight)
-    return () => window.removeEventListener("resize", updateFeedHeight)
-  }, [config.openHistoryHeight, config.position?.anchor, inputOffset.x, inputOffset.y, inputScale, open])
 
   useEffect(() => {
     setSelectedIndex(0)
@@ -412,25 +399,33 @@ export default function App() {
 
   return (
     <main
-      className={`chat-shell ${config.position?.anchor === "bottom" ? "anchor-bottom" : ""}`}
+      className={`chat-shell ${anchorBottom ? "anchor-bottom" : ""}`}
       data-types={Object.keys(types).length}
       style={{
-        [config.position?.anchor === "bottom" ? "bottom" : "top"]: `${config.position?.y ?? 40}px`,
+        [anchorBottom ? "bottom" : "top"]: `${edgeOffset}px`,
         left: `${config.position?.x ?? 16}px`,
         // The saved /hudlayout placement moves the whole window (history and
         // composer together) so the input always sits directly under the history.
         transform: `translate(${inputOffset.x * 100}vw, ${inputOffset.y * 100}vh) scale(${inputScale})`,
-        transformOrigin: config.position?.anchor === "bottom" ? "bottom left" : "top left",
+        transformOrigin: anchorBottom ? "bottom left" : "top left",
       }}
     >
       <section
         aria-live="polite"
-        className={`message-feed ${feedVisible || open ? "visible" : "hidden"} ${open ? "open" : ""} ${messages.length === 0 ? "empty" : ""}`}
+        className={`message-feed ${feedVisible || open ? "visible" : "hidden"} ${open ? "open" : ""}`}
         ref={feedRef}
-        style={feedMaxHeight === undefined ? undefined : { maxHeight: `${feedMaxHeight}px` }}
+        // The history is a fixed-size region (never content-sized) with the
+        // newest message at its bottom edge, so adding messages cannot move
+        // the composer that sits directly beneath it.
+        style={{
+          "--history-height": `${historyHeight}vh`,
+          "--chat-edge": `${edgeOffset}px`,
+        } as React.CSSProperties}
       >
         {messages.map((message) => <MessageRow key={message.id} message={message} templates={templates} />)}
       </section>
+
+      {!open && <div className="composer-spacer" aria-hidden="true" />}
 
       {open && (
         <section

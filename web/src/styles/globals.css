@@ -19,28 +19,37 @@
   position: absolute;
   top: 40px;
   left: 16px;
+  display: flex;
   width: min(480px, 38vw);
+  flex-direction: column;
 }
 
-.chat-shell.anchor-bottom { display: flex; flex-direction: column; }
-
+/* The history is a fixed-height region, never sized by its content: the
+   composer sits directly below it and therefore never moves as messages
+   arrive. --history-height / --chat-edge come from Config.chat in App.tsx;
+   the min() keeps the region plus input on screen on short displays. */
 .message-feed {
   display: flex;
-  max-height: 28vh;
+  height: min(var(--history-height, 32vh), calc(100vh - var(--chat-edge, 40px) - 64px));
+  flex: none;
   flex-direction: column;
   gap: 6px;
-  overflow: hidden auto;
+  overflow: hidden;
   padding: 2px 4px 8px 2px;
   transition: opacity 150ms ease-in;
 }
 
+/* Bottom-align the messages without flex-end, which would make the oldest
+   rows unreachable once the content overflows and scrolls. */
+.message-feed > :first-child { margin-top: auto; }
+
 .message-feed.hidden { opacity: 0; }
 .message-feed.visible { opacity: 1; }
-.message-feed.open { pointer-events: auto; overscroll-behavior: contain; }
-.message-feed.empty { display: none; }
+.message-feed.open { overflow-y: auto; pointer-events: auto; overscroll-behavior: contain; }
 
 .message-row {
   display: flex;
+  flex: none;
   min-height: 42px;
   gap: 10px;
   border: 1px solid hsl(var(--border) / 0.9);
@@ -83,6 +92,10 @@
   pointer-events: auto;
 }
 
+/* Stands in for the composer while chat is closed so a bottom-anchored
+   window keeps its history in the same place when the input opens. */
+.composer-spacer { height: 54px; flex: none; }
+
 .input-row {
   display: flex;
   height: 48px;
@@ -123,8 +136,11 @@ kbd {
 }
 
 .suggestion-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 100%;
   max-height: 48vh;
-  margin-top: 6px;
   overflow: hidden auto;
   border: 1px solid hsl(var(--border));
   border-radius: 10px;
@@ -134,11 +150,8 @@ kbd {
 }
 
 .suggestion-panel.above-input {
-  position: absolute;
+  top: auto;
   bottom: calc(100% + 6px);
-  left: 0;
-  width: 100%;
-  margin-top: 0;
 }
 
 .suggestion-row {
@@ -165,14 +178,15 @@ kbd {
 
 @media (max-width: 640px) {
   .chat-shell { left: 8px !important; width: calc(100vw - 16px); }
-  .message-feed { max-height: 32vh; padding-right: 0; }
+  .message-feed { padding-right: 0; }
   .message-row { min-height: 36px; gap: 7px; border-radius: 8px; padding: 7px 8px; }
   .message-icon { width: 21px; height: 21px; }.message-icon svg { width: 13px; height: 13px; }
   .message-text { font-size: 13px; line-height: 17px; }.message-meta { gap: 5px; }
+  .composer-spacer { height: 50px; }
   .input-row { height: 44px; gap: 7px; padding: 0 10px; }.input-row kbd { display: none; }
   .suggestion-panel { max-height: 40vh; }.suggestion-help { white-space: normal; }
 }
 
 @media (max-height: 560px) {
-  .message-feed { max-height: 24vh; }.suggestion-panel { max-height: 32vh; }
+  .suggestion-panel { max-height: 32vh; }
 }

@@ -120,6 +120,8 @@ H.test('ready handshake refreshes qbtheme/config and completes a pending open', 
     H.equal(focusCalls[#focusCalls][1], true)
     H.equal(themeRefreshes, 1)
     H.falsy(latestAction('qbchat:init').data.theme)
+    H.equal(latestAction('qbchat:init').data.config.historyHeight, Config.chat.historyHeight)
+    H.truthy(Config.chat.historyHeight, 'history height is a documented option')
     H.equal(serverEvents[#serverEvents].name, 'chat:init')
     H.equal(latestAction('qbchat:suggestions').data[1].name, '/help')
 end)
