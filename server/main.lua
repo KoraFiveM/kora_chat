@@ -84,6 +84,27 @@ local function validateDefinition(name, definition)
     return normalized
 end
 
+-- Restricted types (permission other than 'user') are only announced to players who may use them (F#245).
+local function typeVisibleTo(src, definition)
+    if definition.permission == 'user' and definition.checkPermission == permissionCheck then return true end
+    local ok, allowed = pcall(definition.checkPermission, src, definition.permission)
+    return ok and allowed == true
+end
+
+local function announceType(name, definition)
+    local payload = publicType(name, definition)
+    if definition.permission == 'user' and definition.checkPermission == permissionCheck then
+        TriggerClientEvent('qbchat:typeAdded', -1, payload)
+        return
+    end
+    for _, rawTarget in ipairs(GetPlayers()) do
+        local target = tonumber(rawTarget)
+        if target and typeVisibleTo(target, definition) then
+            TriggerClientEvent('qbchat:typeAdded', target, payload)
+        end
+    end
+end
+
 local removeMessageType
 local typeOwnership = Kora.resources.serverRegistry(function(name)
     removeMessageType(name)
@@ -267,7 +288,7 @@ local function registerMessageType(name, definition, explicitOwner)
         })
     end
 
-    TriggerClientEvent('qbchat:typeAdded', -1, publicType(name, normalized))
+    announceType(name, normalized)
     return true
 end
 
@@ -425,7 +446,9 @@ RegisterNetEvent('chat:init', function()
     local src = source
     Kora.commands.refresh(src)
     local types = {}
-    for name, definition in pairs(messageTypes) do types[#types + 1] = publicType(name, definition) end
+    for name, definition in pairs(messageTypes) do
+        if typeVisibleTo(src, definition) then types[#types + 1] = publicType(name, definition) end
+    end
     TriggerClientEvent('qbchat:types', src, types)
 end)
 

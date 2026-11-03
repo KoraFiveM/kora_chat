@@ -417,4 +417,33 @@ H.test('dynamic suggestion callback delegates and rate limits safely', function(
     H.truthy(callbacks['qbchat:commandSuggestions'](1, 'giveitem', 1, '', {})[1])
 end)
 
+H.test('restricted types are only announced to players allowed to use them (F#245)', function()
+    local before = #clientEvents
+    ownExports.registerMessageType('staffonly', {
+        label = 'Staff', command = 'staffonly', permission = 'admin',
+        checkPermission = function(src) return src == 2 end,
+    })
+    local targets = {}
+    for i = before + 1, #clientEvents do
+        local event = clientEvents[i]
+        if event.name == 'qbchat:typeAdded' and event[1].name == 'staffonly' then targets[#targets + 1] = event.target end
+    end
+    H.equal(#targets, 1)
+    H.equal(targets[1], 2)
+
+    local function initTypes(src)
+        _G.source = src
+        for _, cb in ipairs(netHandlers['chat:init']) do cb() end
+        _G.source = 1
+        local seen = false
+        for _, entry in ipairs(latest('qbchat:types')[1]) do
+            if entry.name == 'staffonly' then seen = true end
+        end
+        return seen
+    end
+    H.falsy(initTypes(1))
+    H.truthy(initTypes(2))
+    H.truthy(ownExports.unregisterMessageType('staffonly'))
+end)
+
 H.report('server')
