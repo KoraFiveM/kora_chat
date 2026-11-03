@@ -47,7 +47,7 @@ Config.messageTypes = {}
 
 -- Registers this resource-owned configuration with kora_lib without changing its public Config table.
 if Kora and Kora.config and Kora.config.adopt then
-    Config.messageTypes = Kora.config.map({}, Kora.config.object({}), {
+    Config.messageTypes = Kora.config.map(Config.messageTypes, Kora.config.object({}), {
         label = 'Message types',
         description = 'Defines custom chat message types by command name. Each key becomes the command identifier and its value supplies the authored presentation data used when that message type is registered.',
     })
