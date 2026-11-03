@@ -316,9 +316,18 @@ RegisterNUICallback('qbchat:suggest', function(data, cb)
     cb(type(result) == 'table' and result or {})
 end)
 
-AddEventHandler('onClientResourceStart', function()
-    SetTimeout(500, refreshNativeCommands)
-end)
+-- Resource starts arrive in bursts (~60 at join); coalesce them into one command scan and NUI push (F#246).
+local nativeRefreshPending = false
+local function scheduleNativeRefresh()
+    if nativeRefreshPending then return end
+    nativeRefreshPending = true
+    SetTimeout(500, function()
+        nativeRefreshPending = false
+        refreshNativeCommands()
+    end)
+end
+
+AddEventHandler('onClientResourceStart', scheduleNativeRefresh)
 
 AddEventHandler('onClientResourceStop', function(resource)
     if resource == GetCurrentResourceName() then
@@ -326,6 +335,6 @@ AddEventHandler('onClientResourceStop', function(resource)
         pendingOpen = false
         if SetTextChatEnabled then SetTextChatEnabled(true) end
     else
-        SetTimeout(500, refreshNativeCommands)
+        scheduleNativeRefresh()
     end
 end)

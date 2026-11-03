@@ -231,6 +231,17 @@ H.test('removed kora_lib suggestions are not resurrected by native command refre
     H.equal(latestAction('qbchat:suggestions').data[1].name, '/help')
 end)
 
+H.test('a burst of resource starts schedules one native command refresh (F#246)', function()
+    local queued = {}
+    local realSetTimeout = _G.SetTimeout
+    _G.SetTimeout = function(_, cb) queued[#queued + 1] = cb end
+    for _ = 1, 10 do fire('onClientResourceStart', 'burst_resource') end
+    _G.SetTimeout = realSetTimeout
+    H.equal(#queued, 1)
+    queued[1]()
+    H.truthy(latestAction('qbchat:suggestions'))
+end)
+
 H.test('/me overhead text starts only an activity-bound draw thread', function()
     fire('qbchat:message', {
         id = 'me:1', type = 'me', author = 'Character One', message = 'waves', source = 1,
