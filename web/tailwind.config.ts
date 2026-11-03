@@ -1,4 +1,11 @@
 import type { Config } from "tailwindcss"
+import defaultTheme from "tailwindcss/defaultTheme"
+
+// kora_theme sets these on :root; the fallbacks are Tailwind's stock stacks so
+// the page looks the same when the variables are absent. A bare var() would
+// invalidate the whole declaration when unset, hence the inline fallbacks.
+const sans = defaultTheme.fontFamily.sans.join(", ")
+const mono = defaultTheme.fontFamily.mono.join(", ")
 
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
@@ -20,6 +27,11 @@ export default {
         "surface-hover": "hsl(var(--surface-hover))",
         "brand-soft": "hsl(var(--brand-soft))",
         "brand-border": "hsl(var(--brand-border))",
+      },
+      fontFamily: {
+        sans: [`var(--font-sans, ${sans})`],
+        mono: [`var(--font-mono, ${mono})`],
+        heading: [`var(--font-heading, var(--font-sans, ${sans}))`],
       },
       boxShadow: {
         low: "0 4px 12px rgb(0 0 0 / 28%)",

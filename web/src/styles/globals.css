@@ -143,7 +143,7 @@ kbd {
   background: hsl(var(--surface-raised));
   padding: 1px 5px;
   color: hsl(var(--muted-foreground));
-  font: 500 10px/15px "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font: 500 10px/15px var(--font-mono, "SFMono-Regular", Consolas, "Liberation Mono", monospace);
 }
 
 .suggestion-panel {
@@ -176,8 +176,8 @@ kbd {
   background: hsl(var(--brand-soft));
 }
 .signature { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: 6px; }
-.command-name { color: hsl(var(--foreground)); font: 600 13px/18px "SFMono-Regular", Consolas, monospace; }
-.argument { color: hsl(var(--muted-foreground)); font: 500 12px/18px "SFMono-Regular", Consolas, monospace; }
+.command-name { color: hsl(var(--foreground)); font: 600 13px/18px var(--font-mono, "SFMono-Regular", Consolas, monospace); }
+.argument { color: hsl(var(--muted-foreground)); font: 500 12px/18px var(--font-mono, "SFMono-Regular", Consolas, monospace); }
 .argument.active { color: hsl(var(--foreground)); text-decoration: underline; text-decoration-color: hsl(var(--primary)); text-underline-offset: 3px; }
 .suggestion-help { overflow: hidden; margin-top: 1px; color: hsl(var(--muted-foreground)); font-size: 12px; line-height: 17px; text-overflow: ellipsis; white-space: nowrap; }
 .suggestion-state { padding: 10px; color: hsl(var(--muted-foreground)); font-size: 12px; text-align: center; }
