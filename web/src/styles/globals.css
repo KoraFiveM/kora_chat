@@ -125,6 +125,18 @@
 }
 .input-row input::placeholder { color: hsl(var(--muted-foreground)); }
 
+/* kora_theme draws a global focus ring on every input; for the chat input that
+   ring is the inner outline around the text. Tint it with the placeholder
+   colour instead. Override --chat-input-outline (any kora_theme token, e.g.
+   hsl(var(--border))) to restyle it; the outer .input-row border is unchanged. */
+.input-row input:focus,
+.input-row input:focus-visible {
+  --chat-input-outline: var(--muted-foreground);
+  border-color: hsl(var(--chat-input-outline));
+  box-shadow: 0 0 0 2px hsl(var(--chat-input-outline) / 0.35);
+  outline: 0;
+}
+
 kbd {
   border: 1px solid hsl(var(--border));
   border-radius: 4px;
