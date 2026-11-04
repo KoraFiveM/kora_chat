@@ -20,7 +20,26 @@ local function cleanMessage(value)
     if type(value) ~= 'string' then return nil end
     value = Kora.util.trim(value:gsub('[%z\1-\8\11\12\14-\31]', ''))
     if value == '' then return nil end
-    return Kora.util.truncateUtf8(value, Config.chat.maxMessageLength)
+    local length = utf8.len(value)
+    if length and length > Config.chat.maxMessageLength then
+        return Kora.util.truncateUtf8(value, Config.chat.maxMessageLength), true
+    end
+    return Kora.util.truncateUtf8(value, Config.chat.maxMessageLength), false
+end
+
+local warnCooldown = Kora.timers.cooldown(Config.chatWarnings.interval)
+
+-- kind is a Config.chatWarnings text key; texts may contain %d for the length limit.
+local function warnPlayer(source, kind)
+    local warnings = Config.chatWarnings
+    local text = warnings.enabled and warnings[kind]
+    if source == 0 or type(text) ~= 'string' or text == '' then return end
+    if not warnCooldown.use(source) then return end
+    Kora.notify.send(source, {
+        title = warnings.title,
+        message = text:format(Config.chat.maxMessageLength),
+        type = 'error',
+    })
 end
 
 local function permissionCheck(source, permission)
@@ -171,14 +190,24 @@ end
 
 local function dispatchMessage(source, typeName, rawMessage, options)
     local definition = messageTypes[typeName]
-    local message = cleanMessage(rawMessage)
+    local message, truncated = cleanMessage(rawMessage)
     if not definition or not message then return false, 'invalid message' end
     options = options or {}
 
     if not options.trusted then
         local allowed = definition.checkPermission(source, definition.permission)
         if not allowed then return false, 'permission denied' end
-        if not rateAllowed(source) then return false, 'rate limited' end
+        if truncated then
+            if Config.chatWarnings.overLimitAction == 'reject' then
+                warnPlayer(source, 'tooLong')
+                return false, 'message too long'
+            end
+            warnPlayer(source, 'truncated')
+        end
+        if not rateAllowed(source) then
+            warnPlayer(source, 'rateLimited')
+            return false, 'rate limited'
+        end
     end
 
     nextMessageId = nextMessageId + 1
@@ -476,6 +505,7 @@ end)
 
 AddEventHandler('playerDropped', function()
     messageCooldown.reset(source)
+    warnCooldown.reset(source)
     suggestionRate[source] = nil
 end)
 

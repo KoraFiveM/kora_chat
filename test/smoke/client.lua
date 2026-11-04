@@ -55,7 +55,9 @@ _G.exports = setmetatable({}, { __call = function(_, name, fn) ownExports[name] 
 _G.QBTheme = { refresh = function() themeRefreshes = themeRefreshes + 1 end }
 
 local drawCalls = {}
+local notified = {}
 _G.Kora = {
+    notify = { send = function(payload) notified[#notified + 1] = payload end },
     compat = { provideExport = function(identity, name, fn)
         AddEventHandler(('__cfx_export_%s_%s'):format(identity, name), function(setCB) setCB(fn) end)
     end },
@@ -211,6 +213,14 @@ H.test('submit rejects blanks and enforces the configured character limit', func
 
     keybind.handler()
     nuiCallbacks['qbchat:submit']({ message = string.rep('x', 450) }, function() end)
+    H.equal(#serverEvents, before)
+    H.truthy(notified[#notified].message:find(tostring(Config.chat.maxMessageLength), 1, true))
+
+    Config.chatWarnings.overLimitAction = 'truncate'
+    keybind.handler()
+    nuiCallbacks['qbchat:submit']({ message = string.rep('x', 450) }, function() end)
+    Config.chatWarnings.overLimitAction = 'reject'
+    H.equal(#notified, 2)
     H.equal(utf8.len(serverEvents[#serverEvents][1]), Config.chat.maxMessageLength)
 end)
 

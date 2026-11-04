@@ -46,7 +46,9 @@ _G.exports = setmetatable({ kora_core = qbcore }, {
 })
 
 local tracked = {}
+local notified = {}
 _G.Kora = {
+    notify = { send = function(src, payload) notified[#notified + 1] = { src = src, payload = payload } end },
     compat = { provideExport = function(identity, name, fn)
         AddEventHandler(('__cfx_export_%s_%s'):format(identity, name), function(setCB) setCB(fn) end)
     end },
@@ -185,6 +187,10 @@ H.test('message rate limiting rejects a rapid repeat', function()
     local before = #clientEvents
     fireNet('qbchat:send', 1, 'too fast')
     H.equal(#clientEvents, before)
+    H.equal(notified[#notified].payload.message, Config.chatWarnings.rateLimited)
+    local warned = #notified
+    fireNet('qbchat:send', 1, 'too fast again')
+    H.equal(#notified, warned) -- warning itself is throttled
     clock = clock + Config.chat.minimumMessageInterval
     fireNet('qbchat:send', 1, 'allowed now')
     H.truthy(latest('qbchat:message'))
@@ -209,9 +215,22 @@ H.test('/ooc is global and uses the account identity', function()
     H.equal(event[1].type, 'ooc')
 end)
 
-H.test('player messages are truncated to the configured character limit', function()
+H.test('over-limit messages are rejected with a warning by default', function()
     clock = clock + Config.chat.minimumMessageInterval
+    local before, warned = #clientEvents, #notified
     fireNet('qbchat:send', 1, string.rep('x', 450))
+    H.equal(#clientEvents, before)
+    H.equal(#notified, warned + 1)
+    H.truthy(notified[#notified].payload.message:find(tostring(Config.chat.maxMessageLength), 1, true))
+end)
+
+H.test('player messages are truncated to the configured character limit when configured', function()
+    clock = clock + Config.chatWarnings.interval
+    Config.chatWarnings.overLimitAction = 'truncate'
+    local warned = #notified
+    fireNet('qbchat:send', 1, string.rep('x', 450))
+    Config.chatWarnings.overLimitAction = 'reject'
+    H.equal(#notified, warned + 1)
     H.equal(utf8.len(latest('qbchat:message')[1].message), Config.chat.maxMessageLength)
 end)
 

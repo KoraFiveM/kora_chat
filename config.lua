@@ -36,6 +36,24 @@ Config.chat = {
     suggestionRequestsPerSecond = 10,
 }
 
+-- On-screen warnings (kora_lib notify) when a message is rejected or shortened.
+--   enabled           show the warnings at all.
+--   overLimitAction   what to do with a message longer than Config.chat.maxMessageLength:
+--                     'reject' (do not send it, tell the player) or 'truncate' (send the
+--                     first maxMessageLength characters and tell the player).
+--   interval          minimum ms between two warnings to the same player, so spamming does
+--                     not also spam notifications.
+--   title/tooLong/truncated/rateLimited   texts shown; set a text to '' to silence that case.
+Config.chatWarnings = {
+    enabled = true,
+    overLimitAction = 'reject',
+    interval = 1500,
+    title = 'Chat',
+    tooLong = 'Your message is too long (max %d characters) and was not sent.',
+    truncated = 'Your message was longer than %d characters and was shortened.',
+    rateLimited = 'You are sending messages too quickly. Slow down.',
+}
+
 -- Local /clearchat command: wipes only the player own chat feed on their client.
 -- command is the name without the slash.
 Config.clearChat = { enabled = true, command = 'clearchat' }

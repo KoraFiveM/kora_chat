@@ -61,10 +61,21 @@ local function cleanInput(value)
 
     local length = utf8.len(value)
     if not length then return nil end
-    if length <= Config.chat.maxMessageLength then return value end
+    if length <= Config.chat.maxMessageLength then return value, false end
 
     local offset = utf8.offset(value, Config.chat.maxMessageLength + 1)
-    return offset and value:sub(1, offset - 1) or value
+    return offset and value:sub(1, offset - 1) or value, true
+end
+
+local function warnPlayer(kind)
+    local warnings = Config.chatWarnings
+    local text = warnings.enabled and warnings[kind]
+    if type(text) ~= 'string' or text == '' then return end
+    Kora.notify.send({
+        title = warnings.title,
+        message = text:format(Config.chat.maxMessageLength),
+        type = 'error',
+    })
 end
 
 local function closeInput()
@@ -293,8 +304,12 @@ RegisterNUICallback('qbchat:submit', function(data, cb)
     if not chatEnabled then return end
     if type(data) ~= 'table' or data.cancelled == true or type(data.message) ~= 'string' then return end
 
-    local message = cleanInput(data.message)
+    local message, truncated = cleanInput(data.message)
     if not message then return end
+    if truncated then
+        if Config.chatWarnings.overLimitAction == 'reject' then return warnPlayer('tooLong') end
+        warnPlayer('truncated')
+    end
     if message:sub(1, 1) == '/' then
         local command = message:sub(2)
         if command ~= '' then ExecuteCommand(command) end
