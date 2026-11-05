@@ -289,8 +289,14 @@ RegisterNUICallback('qbchat:ready', function(_, cb)
     cb({ ok = true })
 
     QBTheme.refresh()
+    -- The input caps text at maxMessageLength; allow one extra character so an
+    -- over-limit message reaches qbchat:submit and is rejected/warned instead of
+    -- being silently cut in the UI.
+    local uiConfig = {}
+    for key, value in pairs(Config.chat) do uiConfig[key] = value end
+    uiConfig.maxMessageLength = Config.chat.maxMessageLength + 1
     send('qbchat:init', {
-        config = Config.chat,
+        config = uiConfig,
     })
     loadHudInputLayout()
     send('qbchat:inputOffset', inputLayout)
