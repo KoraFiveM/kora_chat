@@ -6,6 +6,8 @@ export interface ChatConfig {
   suggestionLimit: number
   suggestionResultLimit: number
   suggestionDebounce: number
+  /** Prefix /me action messages with the author name. Defaults to true. */
+  showActionAuthor?: boolean
   historyHeight?: number
   /** @deprecated Use historyHeight. */
   openHistoryHeight?: number

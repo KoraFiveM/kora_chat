@@ -260,4 +260,22 @@ describe("chat interactions", () => {
     expect(notice.tagName).toBe("STRONG")
     expect(screen.queryByText("bad()")).not.toBeInTheDocument()
   })
+
+  it("names the author of an action message in a themed chip by default", async () => {
+    render(<App />)
+    act(() => nui("qbchat:message", { id: "me", type: "me", author: "Alex Mercer", message: "waves" }))
+    const author = await screen.findByText("Alex Mercer")
+    expect(author).toHaveClass("action-author")
+    expect(author.closest(".message-text")).toHaveTextContent("* Alex Mercer waves")
+    expect(css).toContain(".action-author { color: hsl(var(--primary))")
+  })
+
+  it("drops the action author prefix when showActionAuthor is off", async () => {
+    render(<App />)
+    act(() => nui("qbchat:init", { config: { showActionAuthor: false } }))
+    act(() => nui("qbchat:message", { id: "me", type: "me", author: "Alex Mercer", message: "waves" }))
+    const text = await screen.findByText(/waves/)
+    expect(text).toHaveTextContent("* waves")
+    expect(screen.queryByText("Alex Mercer")).not.toBeInTheDocument()
+  })
 })

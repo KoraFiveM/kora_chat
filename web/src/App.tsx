@@ -36,6 +36,7 @@ const DEFAULT_CONFIG: ChatConfig = {
   suggestionLimit: 8,
   suggestionResultLimit: 20,
   suggestionDebounce: 125,
+  showActionAuthor: true,
   historyHeight: 32,
   historyPlacement: "auto",
   position: { anchor: "top", x: 16, y: 40 },
@@ -70,12 +71,17 @@ const TYPE_ICONS = {
   info: Info,
 }
 
-function MessageRow({ message, templates }: { message: ChatMessage; templates: Record<string, string> }) {
+function MessageRow({ message, templates, showActionAuthor = true }: {
+  message: ChatMessage
+  templates: Record<string, string>
+  showActionAuthor?: boolean
+}) {
   const messageType = message.messageType
   const Icon = TYPE_ICONS[messageType?.icon ?? "message"] ?? MessageSquare
 
   if (message.message != null && message.template == null && message.templateId == null) {
     const action = message.type === "me"
+    const actionAuthor = showActionAuthor && message.author ? message.author : null
     const builtInClass = action ? "type-me" : message.type === "ooc" ? "type-ooc" : message.type === "say" ? "type-say" : ""
     return (
       <div className={`message-row ${builtInClass}`} style={messageType?.color ? { borderLeftColor: messageType.color } : undefined}>
@@ -86,7 +92,13 @@ function MessageRow({ message, templates }: { message: ChatMessage; templates: R
             {!action && <span className="message-author">{message.author}</span>}
           </div>
           <div className={action ? "message-text action" : "message-text"}>
-            {action ? `* ${message.author} ${message.message}` : message.message}
+            {action ? (
+              <>
+                {"* "}
+                {actionAuthor && <><span className="action-author">{actionAuthor}</span>{" "}</>}
+                {message.message}
+              </>
+            ) : message.message}
           </div>
         </div>
       </div>
@@ -439,7 +451,14 @@ export default function App() {
           [geometry.historyPlacement === "above" ? "bottom" : "top"]: `calc(100% + ${HISTORY_GAP}px)`,
         }}
       >
-        {messages.map((message) => <MessageRow key={message.id} message={message} templates={templates} />)}
+        {messages.map((message) => (
+          <MessageRow
+            key={message.id}
+            message={message}
+            showActionAuthor={config.showActionAuthor !== false}
+            templates={templates}
+          />
+        ))}
       </section>
 
       {!open && <div className="composer-spacer" aria-hidden="true" />}

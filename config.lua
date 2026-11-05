@@ -28,6 +28,10 @@ Config.chat = {
     -- screen at 1080p. A saved placement puts the input exactly where that box was dropped;
     -- change this only if the kora_hud proxy's default corner is changed.
     layoutOrigin = { x = 16, y = 16 },
+    -- Whether /me action messages are prefixed with the author name, both in the chat UI
+    -- ("* Alex Mercer waves" vs "* waves") and in the overhead world text. The name is
+    -- coloured with kora_theme's primary colour when shown.
+    showActionAuthor = true,
     overheadDuration = 5000,
     overheadLimitPerPlayer = 3,
     suggestionLimit = 8,

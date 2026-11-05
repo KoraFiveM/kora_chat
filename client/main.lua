@@ -191,6 +191,12 @@ RegisterNetEvent('qbchat:types', function(types)
     send('qbchat:types', types)
 end)
 
+--- Overhead /me text, with the author name prefix only when Config.chat.showActionAuthor is on.
+local function overheadText(entry)
+    if Config.chat.showActionAuthor == false then return ('* %s'):format(entry.message) end
+    return ('* %s %s'):format(entry.author, entry.message)
+end
+
 local function startOverheadThread()
     if overheadThreadRunning then return end
     overheadThreadRunning = true
