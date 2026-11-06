@@ -286,9 +286,17 @@ local function registerMessageType(name, definition, explicitOwner)
         local commandName = normalized.command
         Kora.commands.add(commandName, normalized.help, {
             { name = 'message', help = ('Message to send as %s'):format(normalized.label) },
-        }, true, function(source, _, raw)
+        }, false, function(source, _, raw)
+            -- argsRequired is off so an empty message gets chat's own wording instead of
+            -- kora_lib's generic "Missing arguments" text; kora_lib still checks permission first.
             local message = raw:match('^%S+%s+(.+)$')
-            if message then dispatchMessage(source, name, message) end
+            if not message or not message:find('%S') then
+                local text = Config.chat.missingMessageText
+                if type(text) ~= 'string' or text == '' then text = 'Missing arguments for /%s' end
+                Kora.notify.send(source, { message = text:format(commandName), type = 'error' })
+                return
+            end
+            dispatchMessage(source, name, message)
         end, {
             permission = normalized.permission,
             resource = owner,

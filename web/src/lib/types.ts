@@ -3,11 +3,19 @@ export interface ChatConfig {
   messageLimit: number
   historyLimit: number
   fadeTimeout: number
+  /** 'message' fades each message on its own; 'feed' hides the whole feed (old behaviour). */
+  fadeMode?: "message" | "feed"
+  /** Length of one message's fade-out, in ms. */
+  fadeDuration?: number
+  /** Default background opacity (20-100) before a player changes it in /ui. */
+  backgroundOpacity?: number
   suggestionLimit: number
   suggestionResultLimit: number
   suggestionDebounce: number
   /** Prefix /me action messages with the author name. Defaults to true. */
   showActionAuthor?: boolean
+  /** Start /me action messages with "* ". Defaults to false. */
+  showActionAsterisk?: boolean
   historyHeight?: number
   /** @deprecated Use historyHeight. */
   openHistoryHeight?: number
@@ -59,6 +67,18 @@ export interface ChatMessage {
   templateId?: string
   color?: number[]
   multiline?: boolean
+  /** Set by the page when the message arrived (ms), for per-message fading. */
+  receivedAt?: number
+}
+
+/** Per-player chat preferences from kora_hud's /ui editor. */
+export interface ChatPrefs {
+  /** Seconds before a message fades while chat is closed; 0 = never. */
+  fadeSeconds: number
+  /** Background opacity of rows and the input, 20-100. */
+  opacity: number
+  /** Show messages at all while the input is closed. */
+  feedWhenClosed: boolean
 }
 
 export interface ChatInit {

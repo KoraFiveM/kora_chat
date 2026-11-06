@@ -287,4 +287,41 @@ H.test('resource stop always releases owned focus', function()
     H.equal(focusCalls[#focusCalls][1], false)
 end)
 
+H.test('the /ui editor applies the chat layout and prefs, re-clamped', function()
+    fire('kora_hud:ui:apply', 'kora_inventory', 'chatInput', { x = 0.5, y = 0.5, scale = 1, settings = {} })
+    local before = latestAction('qbchat:prefs')
+    fire('kora_hud:ui:apply', 'kora_chat', 'chatInput', {
+        x = 3, y = -0.2, scale = 9, settings = { fadeSeconds = 99, opacity = 5, feedWhenClosed = false },
+    })
+    local offset = latestAction('qbchat:inputOffset').data
+    H.equal(offset.x, 0.95, 'offset is clamped at the chat boundary')
+    H.equal(offset.scale, 1.5, 'scale is clamped')
+    local prefs = latestAction('qbchat:prefs').data
+    H.truthy(prefs ~= (before and before.data), 'prefs were sent')
+    H.equal(prefs.fadeSeconds, 60, 'fade time is clamped')
+    H.equal(prefs.opacity, 20, 'opacity is clamped')
+    H.equal(prefs.feedWhenClosed, false, 'the toggle passes through')
+    fire('kora_hud:ui:apply', 'kora_chat', 'chatInput', { x = 0, y = 0, scale = 1, settings = 'bad' })
+    H.equal(latestAction('qbchat:prefs').data.fadeSeconds, 8, 'bad settings fall back to the server defaults')
+end)
+
+H.test('opening /ui closes the composer and blocks opening it', function()
+    keybind.handler()
+    fire('kora_hud:ui:editing', true)
+    H.equal(focusCalls[#focusCalls][1], false, 'focus is released for the editor')
+    H.equal(latestAction('qbchat:editing').data, true, 'the page shows its preview')
+    local calls = #focusCalls
+    keybind.handler()
+    H.equal(#focusCalls, calls, 'T does nothing while the editor is open')
+    fire('kora_hud:ui:editing', false)
+    H.equal(latestAction('qbchat:editing').data, false)
+end)
+
+H.test('measured geometry is validated and rate limited', function()
+    local response
+    nuiCallbacks['qbchat:geometry']({ rect = { x = 'a' }, defaultOffset = {} }, function(value) response = value end)
+    H.truthy(response.ok, 'always answered')
+    nuiCallbacks['qbchat:geometry']({ rect = { x = 0.01, y = 0.01, w = 0.25, h = 0.04 }, defaultOffset = { x = 0, y = 0.3 } }, function() end)
+end)
+
 H.report('client')

@@ -51,6 +51,8 @@ export function chatGeometry(options: {
   historyPercent: number
   layout: InputLayout
   inputHeight?: number
+  /** Input width in root pixels; when given, the block is also kept on screen horizontally. */
+  inputWidth?: number
 }): ChatGeometry {
   const { width, height } = options.viewport
   const { config, layout } = options
@@ -73,6 +75,9 @@ export function chatGeometry(options: {
   }
   // Only ever pulls an off-screen input back; any on-screen spot is kept exactly.
   top = Math.max(0, Math.min(height - inputHeight * scale, top))
+  if (typeof options.inputWidth === "number" && options.inputWidth > 0) {
+    left = Math.max(0, Math.min(width - options.inputWidth * scale, left))
+  }
 
   const roomAbove = (top - SCREEN_MARGIN) / scale - HISTORY_GAP
   const roomBelow = (height - SCREEN_MARGIN - top) / scale - inputHeight - HISTORY_GAP

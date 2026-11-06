@@ -23,6 +23,7 @@ import type {
   ChatConfig,
   ChatInit,
   ChatMessage,
+  ChatPrefs,
   CommandSuggestion,
   MessageType,
   ValueSuggestion,
@@ -33,10 +34,14 @@ const DEFAULT_CONFIG: ChatConfig = {
   messageLimit: 200,
   historyLimit: 50,
   fadeTimeout: 8000,
+  fadeMode: "message",
+  fadeDuration: 600,
+  backgroundOpacity: 94,
   suggestionLimit: 8,
   suggestionResultLimit: 20,
   suggestionDebounce: 125,
   showActionAuthor: true,
+  showActionAsterisk: false,
   historyHeight: 32,
   historyPlacement: "auto",
   position: { anchor: "top", x: 16, y: 40 },
@@ -44,6 +49,24 @@ const DEFAULT_CONFIG: ChatConfig = {
 }
 
 const HISTORY_HEIGHT_RANGE = { min: 10, max: 90 }
+
+/** Shown in the feed while /ui is open and there is nothing to look at yet. */
+const PREVIEW_MESSAGES: ChatMessage[] = [
+  { id: "ui-preview-1", type: "say", author: "Alex Mercer", message: "This is how chat messages look.", messageType: { name: "say", label: "Local", icon: "message" } },
+  { id: "ui-preview-2", type: "me", author: "Alex Mercer", message: "adjusts the chat.", messageType: { name: "me", label: "Action", icon: "action" } },
+]
+
+function clampNumber(value: unknown, min: number, max: number, fallback: number) {
+  return typeof value === "number" && Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : fallback
+}
+
+function defaultPrefs(config: ChatConfig): ChatPrefs {
+  return {
+    fadeSeconds: clampNumber(Math.round(config.fadeTimeout / 1000), 0, 60, 8),
+    opacity: clampNumber(config.backgroundOpacity, 20, 100, 94),
+    feedWhenClosed: true,
+  }
+}
 
 /**
  * Height of the fixed history region in percent of the screen height.
@@ -71,11 +94,14 @@ const TYPE_ICONS = {
   info: Info,
 }
 
-function MessageRow({ message, templates, showActionAuthor = true }: {
+function MessageRow({ message, templates, showActionAuthor = true, showActionAsterisk = false, faded = false }: {
   message: ChatMessage
   templates: Record<string, string>
   showActionAuthor?: boolean
+  showActionAsterisk?: boolean
+  faded?: boolean
 }) {
+  const fadeClass = faded ? " faded" : ""
   const messageType = message.messageType
   const Icon = TYPE_ICONS[messageType?.icon ?? "message"] ?? MessageSquare
 
@@ -84,7 +110,7 @@ function MessageRow({ message, templates, showActionAuthor = true }: {
     const actionAuthor = showActionAuthor && message.author ? message.author : null
     const builtInClass = action ? "type-me" : message.type === "ooc" ? "type-ooc" : message.type === "say" ? "type-say" : ""
     return (
-      <div className={`message-row ${builtInClass}`} style={messageType?.color ? { borderLeftColor: messageType.color } : undefined}>
+      <div className={`message-row ${builtInClass}${fadeClass}`} style={messageType?.color ? { borderLeftColor: messageType.color } : undefined}>
         <div className="message-icon"><Icon aria-hidden="true" size={15} /></div>
         <div className="message-copy">
           <div className="message-meta">
@@ -94,7 +120,7 @@ function MessageRow({ message, templates, showActionAuthor = true }: {
           <div className={action ? "message-text action" : "message-text"}>
             {action ? (
               <>
-                {"* "}
+                {showActionAsterisk && "* "}
                 {actionAuthor && <><span className="action-author">{actionAuthor}</span>{" "}</>}
                 {message.message}
               </>
@@ -111,7 +137,7 @@ function MessageRow({ message, templates, showActionAuthor = true }: {
   const template = (message.template ?? fallbackTemplate).replace(/@default/g, fallbackTemplate)
   const html = renderCompatibilityTemplate(template, args, message.params)
   return (
-    <div className="message-row compatibility">
+    <div className={`message-row compatibility${fadeClass}`}>
       <div className="message-icon"><Info aria-hidden="true" size={15} /></div>
       <div className="message-text" dangerouslySetInnerHTML={{ __html: html }} />
     </div>
@@ -139,6 +165,13 @@ export default function App() {
   const [inputScale, setInputScale] = useState(1)
   const [suggestionsAboveInput, setSuggestionsAboveInput] = useState(false)
   const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight })
+  // Per-player preferences from the /ui editor (kora_hud), null until Lua
+  // sends them; the server config is the default meanwhile.
+  const [prefsState, setPrefs] = useState<ChatPrefs | null>(null)
+  const [editing, setEditing] = useState(false)
+  // Clock for per-message fading. Only advanced by the one timer below, at the
+  // moment the next message is due to fade -- never on an interval.
+  const [now, setNow] = useState(() => Date.now())
   const inputRef = useRef<HTMLInputElement>(null)
   const inputRowRef = useRef<HTMLDivElement>(null)
   const feedRef = useRef<HTMLDivElement>(null)
@@ -151,13 +184,23 @@ export default function App() {
   // block is laid out in that root pixel space rather than in vw/vh: a vh
   // inside a scaled root covers more than its share of the real screen.
   const rootScale = nuiScale(windowSize.width, windowSize.height)
+  const inputHeight = windowSize.width <= 640 ? 44 : INPUT_HEIGHT
+  // .chat-shell is min(480px, 38vw); vw ignores the root's transform, so this
+  // is already in root pixels.
+  const inputWidth = Math.min(480, 0.38 * windowSize.width)
   const geometry = useMemo(() => chatGeometry({
     viewport: { width: windowSize.width / rootScale, height: windowSize.height / rootScale },
     config,
     historyPercent: resolveHistoryHeight(config),
     layout: { x: inputOffset.x, y: inputOffset.y, scale: inputScale },
-    inputHeight: windowSize.width <= 640 ? 44 : INPUT_HEIGHT,
-  }), [config, inputOffset.x, inputOffset.y, inputScale, rootScale, windowSize.height, windowSize.width])
+    inputHeight,
+    inputWidth,
+  }), [config, inputHeight, inputOffset.x, inputOffset.y, inputScale, inputWidth, rootScale, windowSize.height, windowSize.width])
+
+  const prefs = prefsState ?? defaultPrefs(config)
+  const perMessageFade = config.fadeMode !== "feed"
+  const fadeMs = prefs.fadeSeconds * 1000
+  const fadeDuration = clampNumber(config.fadeDuration, 0, 5000, 600)
 
   const suggestionList = useMemo(() => Object.values(suggestions), [suggestions])
   const commandMatches = useMemo(
@@ -172,17 +215,43 @@ export default function App() {
   const completions = parsed?.exact ? dynamicValues : commandMatches
   const visibleCommands = parsed?.exact && exactSuggestion ? [exactSuggestion] : commandMatches
 
-  const scheduleFade = useCallback((delay = config.fadeTimeout) => {
+  // Whole-feed fade ('feed' mode, the old behaviour). In 'message' mode the
+  // feed itself stays visible and each row fades on its own (see below).
+  const scheduleFade = useCallback((delay = fadeMs) => {
     if (fadeTimer.current) window.clearTimeout(fadeTimer.current)
     setFeedVisible(true)
-    fadeTimer.current = window.setTimeout(() => setFeedVisible(false), delay)
-  }, [config.fadeTimeout])
+    if (!perMessageFade && delay > 0) {
+      fadeTimer.current = window.setTimeout(() => setFeedVisible(false), delay)
+    }
+  }, [fadeMs, perMessageFade])
 
   const pushMessage = useCallback((message: ChatMessage) => {
-    const enriched = { ...message, id: message.id ?? `${Date.now()}:${Math.random()}` }
+    const receivedAt = Date.now()
+    const enriched = { ...message, id: message.id ?? `${receivedAt}:${Math.random()}`, receivedAt }
     setMessages((current) => [...current, enriched].slice(-config.messageLimit))
     scheduleFade()
   }, [config.messageLimit, scheduleFade])
+
+  // One timeout for the next message due to fade; re-armed when messages
+  // arrive or one fades. Nothing runs while chat is open, in the editor, with
+  // fading off, or when every message has already faded.
+  useEffect(() => {
+    if (!perMessageFade || open || editing || fadeMs <= 0) return
+    const current = Date.now()
+    let next = Infinity
+    for (const message of messages) {
+      const due = (message.receivedAt ?? 0) + fadeMs
+      if (due > current && due < next) next = due
+    }
+    if (next === Infinity) return
+    const timer = window.setTimeout(() => setNow(Date.now()), next - current + 20)
+    return () => window.clearTimeout(timer)
+  }, [editing, fadeMs, messages, now, open, perMessageFade])
+
+  // Closing chat (or the editor) re-evaluates which messages are faded now.
+  useEffect(() => {
+    if (!open && !editing) setNow(Date.now())
+  }, [editing, open])
 
   const upsertSuggestion = useCallback((suggestion: Partial<CommandSuggestion>) => {
     if (typeof suggestion.name !== "string") return
@@ -211,6 +280,17 @@ export default function App() {
     setInputScale(Math.max(0.75, Math.min(1.5, scale)))
   })
   useNuiEvent<ChatMessage>("qbchat:message", pushMessage)
+  useNuiEvent<Partial<ChatPrefs>>("qbchat:prefs", (incoming) => {
+    if (!incoming || typeof incoming !== "object") return
+    setPrefs({
+      fadeSeconds: clampNumber(incoming.fadeSeconds, 0, 60, defaultPrefs(config).fadeSeconds),
+      opacity: clampNumber(incoming.opacity, 20, 100, defaultPrefs(config).opacity),
+      feedWhenClosed: incoming.feedWhenClosed !== false,
+    })
+  })
+  useNuiEvent<boolean>("qbchat:editing", (value) => {
+    setEditing(value === true)
+  })
   useNuiEvent<Record<string, never>>("qbchat:open", () => {
     setOpen(true)
     setFeedVisible(true)
@@ -279,6 +359,37 @@ export default function App() {
     window.addEventListener("resize", onResize)
     return () => window.removeEventListener("resize", onResize)
   }, [])
+
+  // Tell kora_hud's /ui editor where the input box really is at this
+  // resolution: the zero point of a saved offset (layoutOrigin) and where the
+  // chat sits when nothing is saved. Debounced; only sent when it changed.
+  const lastGeometry = useRef("")
+  useEffect(() => {
+    if (!isNui) return
+    const timer = window.setTimeout(() => {
+      const width = windowSize.width / rootScale
+      const height = windowSize.height / rootScale
+      const originX = Number.isFinite(config.layoutOrigin?.x) ? Number(config.layoutOrigin?.x) : 16
+      const originY = Number.isFinite(config.layoutOrigin?.y) ? Number(config.layoutOrigin?.y) : 16
+      const unplaced = chatGeometry({
+        viewport: { width, height },
+        config,
+        historyPercent: resolveHistoryHeight(config),
+        layout: { x: 0, y: 0, scale: 1 },
+        inputHeight,
+        inputWidth,
+      })
+      const payload = {
+        rect: { x: originX / width, y: originY / height, w: inputWidth / width, h: inputHeight / height },
+        defaultOffset: { x: (unplaced.left - originX) / width, y: (unplaced.top - originY) / height },
+      }
+      const key = JSON.stringify(payload)
+      if (key === lastGeometry.current) return
+      lastGeometry.current = key
+      void fetchNui("qbchat:geometry", payload).catch(() => { lastGeometry.current = "" })
+    }, 300)
+    return () => window.clearTimeout(timer)
+  }, [config, inputHeight, inputWidth, rootScale, windowSize.height, windowSize.width])
 
   useEffect(() => {
     void fetchNui("qbchat:ready")
@@ -440,28 +551,43 @@ export default function App() {
         left: `${geometry.left}px`,
         transform: `scale(${geometry.scale})`,
         transformOrigin: "top left",
+        ["--chat-surface-alpha" as string]: String(prefs.opacity / 100),
+        ["--chat-fade-duration" as string]: `${fadeDuration}ms`,
       }}
     >
       <section
         aria-live="polite"
-        className={`message-feed ${geometry.historyPlacement} ${feedVisible || open ? "visible" : "hidden"} ${open ? "open" : ""}`}
+        className={`message-feed ${geometry.historyPlacement} ${open || editing || (prefs.feedWhenClosed && (perMessageFade || feedVisible)) ? "visible" : "hidden"} ${open ? "open" : ""}`}
         ref={feedRef}
         style={{
           height: `${geometry.historyHeight}px`,
           [geometry.historyPlacement === "above" ? "bottom" : "top"]: `calc(100% + ${HISTORY_GAP}px)`,
         }}
       >
-        {messages.map((message) => (
+        {(editing && messages.length === 0 ? PREVIEW_MESSAGES : messages).map((message) => (
           <MessageRow
             key={message.id}
             message={message}
             showActionAuthor={config.showActionAuthor !== false}
+            showActionAsterisk={config.showActionAsterisk === true}
             templates={templates}
+            faded={perMessageFade && !open && !editing && fadeMs > 0 && now - (message.receivedAt ?? 0) >= fadeMs}
           />
         ))}
       </section>
 
-      {!open && <div className="composer-spacer" aria-hidden="true" />}
+      {!open && editing && (
+        // Static stand-in for the composer while /ui is open, so the player
+        // can see the box they are moving. Never focusable.
+        <div className="composer composer-preview" aria-hidden="true">
+          <div className="input-row">
+            <Terminal aria-hidden="true" size={16} />
+            <span className="input-placeholder">Type a message or /command</span>
+            <kbd>Esc</kbd>
+          </div>
+        </div>
+      )}
+      {!open && !editing && <div className="composer-spacer" aria-hidden="true" />}
 
       {open && (
         <section

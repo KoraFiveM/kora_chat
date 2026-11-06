@@ -22,6 +22,10 @@
   top: 0;
   left: 16px;
   width: min(480px, 38vw);
+  /* Per-player /ui settings (kora_hud): background opacity of rows and the
+     input, and how long one message takes to fade out. */
+  --chat-surface-alpha: 0.94;
+  --chat-fade-duration: 600ms;
 }
 
 /* The history is out of flow and has a fixed height from lib/layout.ts, never
@@ -48,18 +52,25 @@
 .message-feed.visible { opacity: 1; }
 .message-feed.open { overflow-y: auto; pointer-events: auto; overscroll-behavior: contain; }
 
+/* Rectangular with slightly rounded corners, matching the input. */
 .message-row {
   display: flex;
   flex: none;
   min-height: 42px;
   gap: 10px;
-  border: 1px solid hsl(var(--border) / 0.9);
+  border: 1px solid hsl(var(--border) / calc(0.9 * var(--chat-surface-alpha)));
   border-left: 3px solid hsl(var(--primary));
-  border-radius: 10px;
-  background: hsl(var(--card) / 0.94);
+  border-radius: 6px;
+  background: hsl(var(--card) / var(--chat-surface-alpha));
   padding: 8px 10px;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 28%);
+  box-shadow: 0 4px 12px rgb(0 0 0 / calc(28% * var(--chat-surface-alpha)));
+  transition: opacity var(--chat-fade-duration) ease-out;
+  animation: chat-row-in 120ms ease-out backwards;
 }
+
+/* Per-message fade (Config.chat.fadeMode = 'message'): an old row fades out
+   while chat is closed and comes back when it opens. */
+.message-row.faded { opacity: 0; }
 
 .message-row.compatibility { border-left-color: hsl(var(--border)); }
 .message-row.type-say { border-left-color: hsl(var(--border)); }
@@ -91,7 +102,15 @@
 .composer {
   position: relative;
   pointer-events: auto;
+  animation: chat-composer-in 120ms ease-out backwards;
 }
+
+/* /ui editor stand-in for the composer: looks the same, takes no input. */
+.composer-preview { pointer-events: none; }
+.input-placeholder { flex: 1; padding: 0 10px; color: hsl(var(--muted-foreground)); font-size: 14px; }
+
+@keyframes chat-row-in { from { opacity: 0; transform: translateY(4px); } }
+@keyframes chat-composer-in { from { opacity: 0; transform: translateY(3px); } }
 
 /* Keeps the shell input-sized while chat is closed. */
 .composer-spacer { height: 48px; }
@@ -102,8 +121,8 @@
   align-items: center;
   gap: 9px;
   border: 1px solid hsl(var(--input));
-  border-radius: 10px;
-  background: hsl(var(--background) / 0.98);
+  border-radius: 6px;
+  background: hsl(var(--background) / calc(var(--chat-surface-alpha) + 0.04));
   padding: 0 12px;
   box-shadow: 0 12px 32px rgb(0 0 0 / 42%);
 }
@@ -114,27 +133,30 @@
 }
 
 .input-row > svg { flex: 0 0 auto; color: hsl(var(--muted-foreground)); }
+/* The text starts 10px in from the inner edge, the same as the placeholder,
+   and the field itself draws no box of its own: the row is the input. */
 .input-row input {
   min-width: 0;
+  height: 100%;
   flex: 1;
   border: 0;
+  border-radius: 0;
   outline: 0;
   background: transparent;
+  padding: 0 10px;
   color: hsl(var(--foreground));
   font: inherit;
   font-size: 14px;
 }
 .input-row input::placeholder { color: hsl(var(--muted-foreground)); }
 
-/* kora_theme draws a global focus ring on every input; for the chat input that
-   ring is the inner outline around the text. Tint it with the placeholder
-   colour instead. Override --chat-input-outline (any kora_theme token, e.g.
-   hsl(var(--border))) to restyle it; the outer .input-row border is unchanged. */
+/* kora_theme draws a global focus ring on every input. On the chat input that
+   ring was the rounded inner pill around the text; the focused state is shown
+   by the outer .input-row border (focus-within) instead. */
 .input-row input:focus,
 .input-row input:focus-visible {
-  --chat-input-outline: var(--muted-foreground);
-  border-color: hsl(var(--chat-input-outline));
-  box-shadow: 0 0 0 2px hsl(var(--chat-input-outline) / 0.35);
+  border-color: transparent;
+  box-shadow: none;
   outline: 0;
 }
 
@@ -185,13 +207,14 @@ kbd {
 .suggestion-footer { display: flex; align-items: center; justify-content: flex-end; gap: 5px; border-top: 1px solid hsl(var(--border)); margin: 4px -4px -4px; padding: 6px 9px; color: hsl(var(--muted-foreground)); font-size: 10px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .message-feed { transition: none; }
+  .message-feed, .message-row { transition: none; }
+  .message-row, .composer { animation: none; }
 }
 
 @media (max-width: 640px) {
   .chat-shell { left: 8px !important; width: calc(100vw - 16px); }
   .message-feed { padding-right: 0; }
-  .message-row { min-height: 36px; gap: 7px; border-radius: 8px; padding: 7px 8px; }
+  .message-row { min-height: 36px; gap: 7px; border-radius: 6px; padding: 7px 8px; }
   .message-icon { width: 21px; height: 21px; }.message-icon svg { width: 13px; height: 13px; }
   .message-text { font-size: 13px; line-height: 17px; }.message-meta { gap: 5px; }
   .composer-spacer { height: 44px; }

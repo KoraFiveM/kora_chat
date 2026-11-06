@@ -146,6 +146,16 @@ H.test('built-in types register me and ooc commands with message arguments', fun
     H.equal(commands['me:definition'].args[1].name, 'message')
 end)
 
+H.test('/me without a message says which part is missing and sends nothing', function()
+    local before, warned = #clientEvents, #notified
+    commands.me(1, {}, 'me')
+    commands.me(1, {}, 'me   ')
+    H.equal(#clientEvents, before)
+    H.equal(#notified, warned + 2)
+    H.equal(notified[#notified].payload.message, 'Missing message for /me')
+    H.equal(notified[#notified].payload.type, 'error')
+end)
+
 H.test('normal chat uses character identity and local routing', function()
     fireNet('qbchat:send', 1, 'hello nearby')
     local sends = {}

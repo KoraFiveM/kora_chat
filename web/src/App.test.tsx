@@ -240,9 +240,10 @@ describe("chat interactions", () => {
     expect(screen.getByText("beta")).toBeInTheDocument()
   })
 
-  it("fades the closed feed after the configured timeout", () => {
+  it("fades the closed feed after the configured timeout in feed mode", () => {
     vi.useFakeTimers()
     render(<App />)
+    act(() => nui("qbchat:init", { config: { fadeMode: "feed" } }))
     act(() => nui("qbchat:message", { id: "fade", args: ["Temporary message"] }))
     const feed = screen.getByText("Temporary message").closest("section")
     expect(feed).toHaveClass("visible")
@@ -250,6 +251,48 @@ describe("chat interactions", () => {
     act(() => vi.advanceTimersByTime(8001))
     expect(feed).toHaveClass("hidden")
     vi.useRealTimers()
+  })
+
+  it("fades each message on its own and shows them again when chat opens", () => {
+    vi.useFakeTimers()
+    render(<App />)
+    act(() => nui("qbchat:message", { id: "old", args: ["Old message"] }))
+    act(() => vi.advanceTimersByTime(5000))
+    act(() => nui("qbchat:message", { id: "new", args: ["New message"] }))
+    act(() => vi.advanceTimersByTime(3100))
+    const feed = screen.getByText("Old message").closest("section")
+    expect(feed).toHaveClass("visible")
+    expect(screen.getByText("Old message").closest(".message-row")).toHaveClass("faded")
+    expect(screen.getByText("New message").closest(".message-row")).not.toHaveClass("faded")
+
+    act(() => nui("qbchat:open", {}))
+    expect(screen.getByText("Old message").closest(".message-row")).not.toHaveClass("faded")
+    vi.useRealTimers()
+  })
+
+  it("applies the player's /ui chat preferences", () => {
+    vi.useFakeTimers()
+    const { container } = render(<App />)
+    act(() => nui("qbchat:prefs", { fadeSeconds: 0, opacity: 50, feedWhenClosed: true }))
+    act(() => nui("qbchat:message", { id: "keep", args: ["Kept message"] }))
+    act(() => vi.advanceTimersByTime(60000))
+    expect(screen.getByText("Kept message").closest(".message-row")).not.toHaveClass("faded")
+    const shell = container.querySelector(".chat-shell") as HTMLElement
+    expect(shell.style.getPropertyValue("--chat-surface-alpha")).toBe("0.5")
+
+    act(() => nui("qbchat:prefs", { fadeSeconds: 8, opacity: 500, feedWhenClosed: false }))
+    expect(shell.style.getPropertyValue("--chat-surface-alpha")).toBe("1")
+    expect(screen.getByText("Kept message").closest("section")).toHaveClass("hidden")
+    vi.useRealTimers()
+  })
+
+  it("shows a static preview of the chat while the /ui editor is open", () => {
+    const { container } = render(<App />)
+    act(() => nui("qbchat:editing", true))
+    expect(container.querySelector(".composer-preview")).not.toBeNull()
+    expect(screen.getByText("This is how chat messages look.")).toBeInTheDocument()
+    act(() => nui("qbchat:editing", false))
+    expect(container.querySelector(".composer-preview")).toBeNull()
   })
 
   it("uses registered compatibility templates without allowing raw script markup", async () => {
@@ -266,7 +309,7 @@ describe("chat interactions", () => {
     act(() => nui("qbchat:message", { id: "me", type: "me", author: "Alex Mercer", message: "waves" }))
     const author = await screen.findByText("Alex Mercer")
     expect(author).toHaveClass("action-author")
-    expect(author.closest(".message-text")).toHaveTextContent("* Alex Mercer waves")
+    expect(author.closest(".message-text")).toHaveTextContent(/^Alex Mercer waves$/)
     expect(css).toContain(".action-author { color: hsl(var(--primary))")
   })
 
@@ -275,7 +318,15 @@ describe("chat interactions", () => {
     act(() => nui("qbchat:init", { config: { showActionAuthor: false } }))
     act(() => nui("qbchat:message", { id: "me", type: "me", author: "Alex Mercer", message: "waves" }))
     const text = await screen.findByText(/waves/)
-    expect(text).toHaveTextContent("* waves")
+    expect(text).toHaveTextContent(/^waves$/)
     expect(screen.queryByText("Alex Mercer")).not.toBeInTheDocument()
+  })
+
+  it("starts action messages with an asterisk only when showActionAsterisk is on", async () => {
+    render(<App />)
+    act(() => nui("qbchat:init", { config: { showActionAsterisk: true } }))
+    act(() => nui("qbchat:message", { id: "me", type: "me", author: "Alex Mercer", message: "waves" }))
+    const author = await screen.findByText("Alex Mercer")
+    expect(author.closest(".message-text")).toHaveTextContent(/^\* Alex Mercer waves$/)
   })
 })
