@@ -23,6 +23,20 @@ Ordinary chat and `/me` are character-named and routed within 20 metres.
 `/ooc` is account-named and global. `/me` also draws above the sender for five
 seconds. Slash-prefixed input is passed to FiveM's command system.
 
+### `/me` overhead bubble options
+
+All in `Config.chat` (`config.lua`); restart `kora_chat` after editing.
+
+- `showActionAuthor` (default `false`): show the character name in the bubble (and chat line).
+- `overheadColourName` (default `true`): colour that name with `overheadNameColour` from
+  `kora_theme`, even when `overheadThemed` is off.
+- `overheadNameColour`, `overheadTextColour`: a `kora_theme` colour key (`primary`,
+  `foreground`, `success`, ...) or `'#RRGGBB'`. `primary` follows the player's `/theme`.
+- `overheadThemed` (default `false`): apply the text colour, background and opacity.
+- `overheadBackground` / `overheadBackgroundAlpha`: bubble background colour (or `false`) and 0-255 opacity.
+- `overheadDuration` (default `5000`): ms the bubble stays up.
+- `localRange`: only players within this range see the bubble.
+
 ## Server exports
 
 ```lua
