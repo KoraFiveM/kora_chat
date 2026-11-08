@@ -532,7 +532,7 @@ registerMessageType('me', {
     label = 'Action', help = 'Describe a nearby character action', command = 'me',
     scope = 'local', range = Config.chat.localRange, identity = 'character',
     icon = 'action', permission = 'user', overhead = true,
-    overheadDuration = Config.chat.overheadDuration,
+    overheadDuration = math.min(30000, math.max(1, math.floor(tonumber(Config.chat.overheadDuration) or 5000))),
 }, GetCurrentResourceName())
 
 registerMessageType('ooc', {
