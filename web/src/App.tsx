@@ -269,18 +269,18 @@ export default function App() {
     })
   }, [])
 
-  useNuiEvent<ChatInit>("qbchat:init", ({ config: incoming }) => {
+  useNuiEvent<ChatInit>("kora_chat:init", ({ config: incoming }) => {
     if (incoming) setConfig((current) => ({ ...current, ...incoming }))
   })
-  useNuiEvent<{ x?: unknown; y?: unknown; scale?: unknown }>("qbchat:inputOffset", (incoming) => {
+  useNuiEvent<{ x?: unknown; y?: unknown; scale?: unknown }>("kora_chat:inputOffset", (incoming) => {
     const x = typeof incoming?.x === "number" && Number.isFinite(incoming.x) ? incoming.x : 0
     const y = typeof incoming?.y === "number" && Number.isFinite(incoming.y) ? incoming.y : 0
     const scale = typeof incoming?.scale === "number" && Number.isFinite(incoming.scale) ? incoming.scale : 1
     setInputOffset({ x: Math.max(-0.95, Math.min(0.95, x)), y: Math.max(-0.95, Math.min(0.95, y)) })
     setInputScale(Math.max(0.75, Math.min(1.5, scale)))
   })
-  useNuiEvent<ChatMessage>("qbchat:message", pushMessage)
-  useNuiEvent<Partial<ChatPrefs>>("qbchat:prefs", (incoming) => {
+  useNuiEvent<ChatMessage>("kora_chat:message", pushMessage)
+  useNuiEvent<Partial<ChatPrefs>>("kora_chat:prefs", (incoming) => {
     if (!incoming || typeof incoming !== "object") return
     setPrefs({
       fadeSeconds: clampNumber(incoming.fadeSeconds, 0, 60, defaultPrefs(config).fadeSeconds),
@@ -288,30 +288,30 @@ export default function App() {
       feedWhenClosed: incoming.feedWhenClosed !== false,
     })
   })
-  useNuiEvent<boolean>("qbchat:editing", (value) => {
+  useNuiEvent<boolean>("kora_chat:editing", (value) => {
     setEditing(value === true)
   })
-  useNuiEvent<Record<string, never>>("qbchat:open", () => {
+  useNuiEvent<Record<string, never>>("kora_chat:open", () => {
     setOpen(true)
     setFeedVisible(true)
     setHistoryIndex(-1)
   })
-  useNuiEvent<Record<string, never>>("qbchat:close", () => {
+  useNuiEvent<Record<string, never>>("kora_chat:close", () => {
     setOpen(false)
     setValue("")
     setDynamicValues([])
     scheduleFade()
   })
-  useNuiEvent<Record<string, never>>("qbchat:clearMessages", () => {
+  useNuiEvent<Record<string, never>>("kora_chat:clearMessages", () => {
     setMessages([])
   })
-  useNuiEvent<Record<string, never>>("qbchat:clear", () => {
+  useNuiEvent<Record<string, never>>("kora_chat:clear", () => {
     setMessages([])
     setHistory([])
     setHistoryIndex(-1)
   })
-  useNuiEvent<CommandSuggestion>("qbchat:suggestionAdd", upsertSuggestion)
-  useNuiEvent<CommandSuggestion[]>("qbchat:suggestions", (items) => {
+  useNuiEvent<CommandSuggestion>("kora_chat:suggestionAdd", upsertSuggestion)
+  useNuiEvent<CommandSuggestion[]>("kora_chat:suggestions", (items) => {
     if (!Array.isArray(items)) return
     setSuggestions((current) => {
       const native = new Map<string, CommandSuggestion>()
@@ -332,25 +332,25 @@ export default function App() {
       return next
     })
   })
-  useNuiEvent<string>("qbchat:suggestionRemove", (name) => {
+  useNuiEvent<string>("kora_chat:suggestionRemove", (name) => {
     setSuggestions((current) => {
       const next = { ...current }
       delete next[normalizeCommandName(name).toLowerCase()]
       return next
     })
   })
-  useNuiEvent<{ id?: string; template?: string }>("qbchat:templateAdd", ({ id, template }) => {
+  useNuiEvent<{ id?: string; template?: string }>("kora_chat:templateAdd", ({ id, template }) => {
     if (id && typeof template === "string") setTemplates((current) => ({ ...current, [id]: template }))
   })
-  useNuiEvent<MessageType>("qbchat:typeAdd", (messageType) => {
+  useNuiEvent<MessageType>("kora_chat:typeAdd", (messageType) => {
     if (messageType?.name) setTypes((current) => ({ ...current, [messageType.name!]: messageType }))
   })
-  useNuiEvent<MessageType[]>("qbchat:types", (items) => {
+  useNuiEvent<MessageType[]>("kora_chat:types", (items) => {
     const next: Record<string, MessageType> = {}
     items?.forEach((item) => { if (item.name) next[item.name] = item })
     setTypes(next)
   })
-  useNuiEvent<string>("qbchat:typeRemove", (name) => {
+  useNuiEvent<string>("kora_chat:typeRemove", (name) => {
     setTypes((current) => { const next = { ...current }; delete next[name]; return next })
   })
 
@@ -386,13 +386,13 @@ export default function App() {
       const key = JSON.stringify(payload)
       if (key === lastGeometry.current) return
       lastGeometry.current = key
-      void fetchNui("qbchat:geometry", payload).catch(() => { lastGeometry.current = "" })
+      void fetchNui("kora_chat:geometry", payload).catch(() => { lastGeometry.current = "" })
     }, 300)
     return () => window.clearTimeout(timer)
   }, [config, inputHeight, inputWidth, rootScale, windowSize.height, windowSize.width])
 
   useEffect(() => {
-    void fetchNui("qbchat:ready")
+    void fetchNui("kora_chat:ready")
     return () => { if (fadeTimer.current) window.clearTimeout(fadeTimer.current) }
   }, [])
 
@@ -418,7 +418,7 @@ export default function App() {
     setLoadingValues(true)
     const timer = window.setTimeout(async () => {
       try {
-        const result = await fetchNui<ValueSuggestion[]>("qbchat:suggest", {
+        const result = await fetchNui<ValueSuggestion[]>("kora_chat:suggest", {
           command: parsed.command,
           argumentIndex: parsed.argumentIndex,
           query: parsed.query,
@@ -446,7 +446,7 @@ export default function App() {
     setHistoryIndex(-1)
     setDynamicValues([])
     scheduleFade()
-    void fetchNui("qbchat:submit", { cancelled, message })
+    void fetchNui("kora_chat:submit", { cancelled, message })
   }, [config.historyLimit, scheduleFade, value])
 
   const completeSuggestion = useCallback((completion: CommandSuggestion | ValueSuggestion) => {

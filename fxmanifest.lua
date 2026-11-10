@@ -3,11 +3,9 @@ game 'gta5'
 lua54 'yes'
 
 name 'kora_chat'
--- Keep the legacy resource name resolvable for exports['qbchat'] callers.
-provide 'qbchat'
 author 'Jamie'
 version '1.0.0'
-description 'Event-driven, qbtheme-styled chat with proximity roleplay messages and command completion'
+description 'Event-driven, kora_theme-styled chat with proximity roleplay messages and command completion'
 
 provide 'chat'
 

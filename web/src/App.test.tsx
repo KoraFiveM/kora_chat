@@ -15,8 +15,8 @@ describe("chat interactions", () => {
 
   it("opens, filters, and completes a command with Tab", async () => {
     render(<App />)
-    nui("qbchat:suggestionAdd", { name: "/giveitem", help: "Give item", params: [{ name: "id" }] })
-    nui("qbchat:open", {})
+    nui("kora_chat:suggestionAdd", { name: "/giveitem", help: "Give item", params: [{ name: "id" }] })
+    nui("kora_chat:open", {})
     const input = await screen.findByLabelText("Chat message")
     fireEvent.change(input, { target: { value: "/giv" } })
     await screen.findByText("/giveitem")
@@ -26,8 +26,8 @@ describe("chat interactions", () => {
 
   it("completes a command when its suggestion is clicked", async () => {
     render(<App />)
-    nui("qbchat:suggestionAdd", { name: "/giveitem", help: "Give item", params: [{ name: "id" }] })
-    nui("qbchat:open", {})
+    nui("kora_chat:suggestionAdd", { name: "/giveitem", help: "Give item", params: [{ name: "id" }] })
+    nui("kora_chat:open", {})
     const input = await screen.findByLabelText("Chat message")
     fireEvent.change(input, { target: { value: "/giv" } })
     fireEvent.click(await screen.findByRole("option", { name: /giveitem/i }))
@@ -42,8 +42,8 @@ describe("chat interactions", () => {
       } as DOMRect
     })
     render(<App />)
-    nui("qbchat:suggestionAdd", { name: "/giveitem", help: "Give item", params: [] })
-    nui("qbchat:open", {})
+    nui("kora_chat:suggestionAdd", { name: "/giveitem", help: "Give item", params: [] })
+    nui("kora_chat:open", {})
     const input = await screen.findByLabelText("Chat message")
     fireEvent.change(input, { target: { value: "/giv" } })
     const panel = await screen.findByRole("listbox")
@@ -56,13 +56,13 @@ describe("chat interactions", () => {
 
   it("submits history and recalls it with ArrowUp", async () => {
     render(<App />)
-    nui("qbchat:open", {})
+    nui("kora_chat:open", {})
     let input = await screen.findByLabelText("Chat message")
     fireEvent.change(input, { target: { value: "hello" } })
     fireEvent.keyDown(input, { key: "Enter" })
     await waitFor(() => expect(screen.queryByLabelText("Chat message")).not.toBeInTheDocument())
 
-    nui("qbchat:open", {})
+    nui("kora_chat:open", {})
     input = await screen.findByLabelText("Chat message")
     fireEvent.keyDown(input, { key: "ArrowUp" })
     expect(input).toHaveValue("hello")
@@ -70,7 +70,7 @@ describe("chat interactions", () => {
 
   it("dismisses an open composer with Escape when the input has lost focus", async () => {
     render(<App />)
-    nui("qbchat:open", {})
+    nui("kora_chat:open", {})
     await screen.findByLabelText("Chat message")
     fireEvent.keyDown(window, { key: "Escape" })
     await waitFor(() => expect(screen.queryByLabelText("Chat message")).not.toBeInTheDocument())
@@ -78,25 +78,25 @@ describe("chat interactions", () => {
 
   it("clears received messages", async () => {
     render(<App />)
-    nui("qbchat:message", { id: "one", args: ["System message"] })
+    nui("kora_chat:message", { id: "one", args: ["System message"] })
     await screen.findByText("System message")
-    nui("qbchat:clear", {})
+    nui("kora_chat:clear", {})
     await waitFor(() => expect(screen.queryByText("System message")).not.toBeInTheDocument())
   })
 
   it("clearMessages empties the feed but keeps the typed-message recall history", async () => {
     render(<App />)
-    nui("qbchat:message", { id: "one", args: ["System message"] })
+    nui("kora_chat:message", { id: "one", args: ["System message"] })
     await screen.findByText("System message")
-    nui("qbchat:clearMessages", {})
+    nui("kora_chat:clearMessages", {})
     await waitFor(() => expect(screen.queryByText("System message")).not.toBeInTheDocument())
   })
 
   it("places the input box itself at the /hudlayout spot, in root pixels rather than vw/vh", async () => {
     const { container } = render(<App />)
-    nui("qbchat:open", {})
+    nui("kora_chat:open", {})
     await screen.findByLabelText("Chat message")
-    act(() => nui("qbchat:inputOffset", { x: 0.25, y: 0.5, scale: 1.25 }))
+    act(() => nui("kora_chat:inputOffset", { x: 0.25, y: 0.5, scale: 1.25 }))
 
     // jsdom is 1024x768, so the shared NUI root is 1920x1440 root pixels.
     const shell = container.querySelector<HTMLElement>(".chat-shell")!
@@ -130,24 +130,24 @@ describe("chat interactions", () => {
 
     it("keeps the shell and history geometry identical from 0 to 200 messages, open and closed", async () => {
       const { container } = render(<App />)
-      act(() => nui("qbchat:inputOffset", { x: 0.05, y: 0.7, scale: 1.1 }))
+      act(() => nui("kora_chat:inputOffset", { x: 0.05, y: 0.7, scale: 1.1 }))
       const closed = blockGeometry(container)
       expect(closed.placement).toBe("above")
       expect(closed.bottom).toBe("calc(100% + 6px)")
       expect(container.querySelector(".composer-spacer")).not.toBeNull()
 
-      nui("qbchat:open", {})
+      nui("kora_chat:open", {})
       await screen.findByLabelText("Chat message")
       expect(blockGeometry(container)).toEqual(closed)
 
       act(() => {
         for (let index = 0; index < 200; index += 1) {
-          nui("qbchat:message", { id: `size:${index}`, args: [`message ${index}`] })
+          nui("kora_chat:message", { id: `size:${index}`, args: [`message ${index}`] })
         }
       })
       expect(blockGeometry(container)).toEqual(closed)
 
-      act(() => nui("qbchat:clearMessages", {}))
+      act(() => nui("kora_chat:clearMessages", {}))
       expect(blockGeometry(container)).toEqual(closed)
     })
 
@@ -155,11 +155,11 @@ describe("chat interactions", () => {
       const { container } = render(<App />)
       const height = () => parseFloat(container.querySelector<HTMLElement>(".message-feed")!.style.height)
       expect(height()).toBeCloseTo(0.32 * 1440, 6)
-      act(() => nui("qbchat:init", { config: { historyHeight: 50 } }))
+      act(() => nui("kora_chat:init", { config: { historyHeight: 50 } }))
       expect(height()).toBeCloseTo(0.5 * 1440, 6)
-      act(() => nui("qbchat:init", { config: { historyHeight: 500 } }))
+      act(() => nui("kora_chat:init", { config: { historyHeight: 500 } }))
       expect(height()).toBeLessThanOrEqual(1440)
-      act(() => nui("qbchat:init", { config: { historyHeight: undefined, openHistoryHeight: 45 } }))
+      act(() => nui("kora_chat:init", { config: { historyHeight: undefined, openHistoryHeight: 45 } }))
       expect(height()).toBeCloseTo(0.45 * 1440, 6)
     })
 
@@ -167,13 +167,13 @@ describe("chat interactions", () => {
       const { container } = render(<App />)
       const shell = container.querySelector<HTMLElement>(".chat-shell")!
       expect(shell).toHaveStyle({ left: "16px", top: `${40 + 0.32 * 1440 + 6}px` })
-      act(() => nui("qbchat:init", { config: { position: { anchor: "bottom", x: 20, y: 120 } } }))
+      act(() => nui("kora_chat:init", { config: { position: { anchor: "bottom", x: 20, y: 120 } } }))
       expect(shell).toHaveStyle({ left: "20px", top: `${1440 - 120 - 48}px` })
     })
 
     it("puts the history below an input placed at the top of the screen", () => {
       const { container } = render(<App />)
-      act(() => nui("qbchat:inputOffset", { x: 0, y: 0.02, scale: 1 }))
+      act(() => nui("kora_chat:inputOffset", { x: 0, y: 0.02, scale: 1 }))
       const feed = container.querySelector<HTMLElement>(".message-feed")!
       expect(feed).toHaveClass("below")
       expect(feed.style.top).toBe("calc(100% + 6px)")
@@ -202,7 +202,7 @@ describe("chat interactions", () => {
     const { container } = render(<App />)
     act(() => {
       for (let index = 0; index <= 200; index += 1) {
-        nui("qbchat:message", { id: `message:${index}`, args: [`message ${index}`] })
+        nui("kora_chat:message", { id: `message:${index}`, args: [`message ${index}`] })
       }
     })
 
@@ -214,17 +214,17 @@ describe("chat interactions", () => {
   it("discards a stale dynamic argument response", async () => {
     const pending: Array<(response: { ok: boolean; json: () => Promise<unknown> }) => void> = []
     vi.stubGlobal("fetch", vi.fn((input: string | URL | Request) => {
-      if (String(input).endsWith("/qbchat:suggest")) {
+      if (String(input).endsWith("/kora_chat:suggest")) {
         return new Promise((resolve) => pending.push(resolve))
       }
       return Promise.resolve({ ok: true, json: async () => ({}) })
     }))
 
     render(<App />)
-    nui("qbchat:suggestionAdd", {
+    nui("kora_chat:suggestionAdd", {
       name: "/giveitem", help: "Give item", params: [{ name: "item", hasSuggestions: true }],
     })
-    nui("qbchat:open", {})
+    nui("kora_chat:open", {})
     const input = await screen.findByLabelText("Chat message")
 
     fireEvent.change(input, { target: { value: "/giveitem al" } })
@@ -243,8 +243,8 @@ describe("chat interactions", () => {
   it("fades the closed feed after the configured timeout in feed mode", () => {
     vi.useFakeTimers()
     render(<App />)
-    act(() => nui("qbchat:init", { config: { fadeMode: "feed" } }))
-    act(() => nui("qbchat:message", { id: "fade", args: ["Temporary message"] }))
+    act(() => nui("kora_chat:init", { config: { fadeMode: "feed" } }))
+    act(() => nui("kora_chat:message", { id: "fade", args: ["Temporary message"] }))
     const feed = screen.getByText("Temporary message").closest("section")
     expect(feed).toHaveClass("visible")
 
@@ -256,16 +256,16 @@ describe("chat interactions", () => {
   it("fades each message on its own and shows them again when chat opens", () => {
     vi.useFakeTimers()
     render(<App />)
-    act(() => nui("qbchat:message", { id: "old", args: ["Old message"] }))
+    act(() => nui("kora_chat:message", { id: "old", args: ["Old message"] }))
     act(() => vi.advanceTimersByTime(5000))
-    act(() => nui("qbchat:message", { id: "new", args: ["New message"] }))
+    act(() => nui("kora_chat:message", { id: "new", args: ["New message"] }))
     act(() => vi.advanceTimersByTime(3100))
     const feed = screen.getByText("Old message").closest("section")
     expect(feed).toHaveClass("visible")
     expect(screen.getByText("Old message").closest(".message-row")).toHaveClass("faded")
     expect(screen.getByText("New message").closest(".message-row")).not.toHaveClass("faded")
 
-    act(() => nui("qbchat:open", {}))
+    act(() => nui("kora_chat:open", {}))
     expect(screen.getByText("Old message").closest(".message-row")).not.toHaveClass("faded")
     vi.useRealTimers()
   })
@@ -273,14 +273,14 @@ describe("chat interactions", () => {
   it("applies the player's /ui chat preferences", () => {
     vi.useFakeTimers()
     const { container } = render(<App />)
-    act(() => nui("qbchat:prefs", { fadeSeconds: 0, opacity: 50, feedWhenClosed: true }))
-    act(() => nui("qbchat:message", { id: "keep", args: ["Kept message"] }))
+    act(() => nui("kora_chat:prefs", { fadeSeconds: 0, opacity: 50, feedWhenClosed: true }))
+    act(() => nui("kora_chat:message", { id: "keep", args: ["Kept message"] }))
     act(() => vi.advanceTimersByTime(60000))
     expect(screen.getByText("Kept message").closest(".message-row")).not.toHaveClass("faded")
     const shell = container.querySelector(".chat-shell") as HTMLElement
     expect(shell.style.getPropertyValue("--chat-surface-alpha")).toBe("0.5")
 
-    act(() => nui("qbchat:prefs", { fadeSeconds: 8, opacity: 500, feedWhenClosed: false }))
+    act(() => nui("kora_chat:prefs", { fadeSeconds: 8, opacity: 500, feedWhenClosed: false }))
     expect(shell.style.getPropertyValue("--chat-surface-alpha")).toBe("1")
     expect(screen.getByText("Kept message").closest("section")).toHaveClass("hidden")
     vi.useRealTimers()
@@ -288,17 +288,17 @@ describe("chat interactions", () => {
 
   it("shows a static preview of the chat while the /ui editor is open", () => {
     const { container } = render(<App />)
-    act(() => nui("qbchat:editing", true))
+    act(() => nui("kora_chat:editing", true))
     expect(container.querySelector(".composer-preview")).not.toBeNull()
     expect(screen.getByText("This is how chat messages look.")).toBeInTheDocument()
-    act(() => nui("qbchat:editing", false))
+    act(() => nui("kora_chat:editing", false))
     expect(container.querySelector(".composer-preview")).toBeNull()
   })
 
   it("uses registered compatibility templates without allowing raw script markup", async () => {
     render(<App />)
-    nui("qbchat:templateAdd", { id: "notice", template: "<strong>{0}</strong><script>bad()</script>" })
-    nui("qbchat:message", { id: "template", templateId: "notice", args: ["Safe notice"] })
+    nui("kora_chat:templateAdd", { id: "notice", template: "<strong>{0}</strong><script>bad()</script>" })
+    nui("kora_chat:message", { id: "template", templateId: "notice", args: ["Safe notice"] })
     const notice = await screen.findByText("Safe notice")
     expect(notice.tagName).toBe("STRONG")
     expect(screen.queryByText("bad()")).not.toBeInTheDocument()
@@ -306,7 +306,7 @@ describe("chat interactions", () => {
 
   it("names the author of an action message in a themed chip by default", async () => {
     render(<App />)
-    act(() => nui("qbchat:message", { id: "me", type: "me", author: "Alex Mercer", message: "waves" }))
+    act(() => nui("kora_chat:message", { id: "me", type: "me", author: "Alex Mercer", message: "waves" }))
     const author = await screen.findByText("Alex Mercer")
     expect(author).toHaveClass("action-author")
     expect(author.closest(".message-text")).toHaveTextContent(/^Alex Mercer waves$/)
@@ -315,8 +315,8 @@ describe("chat interactions", () => {
 
   it("drops the action author prefix when showActionAuthor is off", async () => {
     render(<App />)
-    act(() => nui("qbchat:init", { config: { showActionAuthor: false } }))
-    act(() => nui("qbchat:message", { id: "me", type: "me", author: "Alex Mercer", message: "waves" }))
+    act(() => nui("kora_chat:init", { config: { showActionAuthor: false } }))
+    act(() => nui("kora_chat:message", { id: "me", type: "me", author: "Alex Mercer", message: "waves" }))
     const text = await screen.findByText(/waves/)
     expect(text).toHaveTextContent(/^waves$/)
     expect(screen.queryByText("Alex Mercer")).not.toBeInTheDocument()
@@ -324,8 +324,8 @@ describe("chat interactions", () => {
 
   it("starts action messages with an asterisk only when showActionAsterisk is on", async () => {
     render(<App />)
-    act(() => nui("qbchat:init", { config: { showActionAsterisk: true } }))
-    act(() => nui("qbchat:message", { id: "me", type: "me", author: "Alex Mercer", message: "waves" }))
+    act(() => nui("kora_chat:init", { config: { showActionAsterisk: true } }))
+    act(() => nui("kora_chat:message", { id: "me", type: "me", author: "Alex Mercer", message: "waves" }))
     const author = await screen.findByText("Alex Mercer")
     expect(author.closest(".message-text")).toHaveTextContent(/^\* Alex Mercer waves$/)
   })

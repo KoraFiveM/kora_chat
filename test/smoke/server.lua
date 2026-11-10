@@ -38,10 +38,10 @@ _G.GetEntityCoords = function(entity) return { x = entity * 10, y = 0, z = 0 } e
 _G.IsPlayerAceAllowed = function() return true end
 _G.WasEventCanceled = function() return false end
 
-local qbcore = {}
-function qbcore:getPlayerData(src) return src == 1 and 'Character One' or nil end
-function qbcore:hasPermission(_, permission) return permission ~= 'denied' end
-_G.exports = setmetatable({ kora_core = qbcore }, {
+local kora_core = {}
+function kora_core:getPlayerData(src) return src == 1 and 'Character One' or nil end
+function kora_core:hasPermission(_, permission) return permission ~= 'denied' end
+_G.exports = setmetatable({ kora_core = kora_core }, {
     __call = function(_, name, fn) ownExports[name] = fn end,
 })
 
@@ -157,10 +157,10 @@ H.test('/me without a message says which part is missing and sends nothing', fun
 end)
 
 H.test('normal chat uses character identity and local routing', function()
-    fireNet('qbchat:send', 1, 'hello nearby')
+    fireNet('kora_chat:send', 1, 'hello nearby')
     local sends = {}
     for _, event in ipairs(clientEvents) do
-        if event.name == 'qbchat:message' and event[1].message == 'hello nearby' then sends[event.target] = event[1] end
+        if event.name == 'kora_chat:message' and event[1].message == 'hello nearby' then sends[event.target] = event[1] end
     end
     H.truthy(sends[1])
     H.truthy(sends[2])
@@ -170,10 +170,10 @@ H.test('normal chat uses character identity and local routing', function()
 end)
 
 H.test('character identity falls back to the account name', function()
-    fireNet('qbchat:send', 2, 'fallback name')
+    fireNet('kora_chat:send', 2, 'fallback name')
     local ownEvent
     for _, event in ipairs(clientEvents) do
-        if event.name == 'qbchat:message' and event.target == 2 and event[1].message == 'fallback name' then ownEvent = event end
+        if event.name == 'kora_chat:message' and event.target == 2 and event[1].message == 'fallback name' then ownEvent = event end
     end
     H.truthy(ownEvent)
     H.equal(ownEvent[1].author, 'Account Two')
@@ -181,11 +181,11 @@ end)
 
 H.test('local routing always includes the sender when coordinates are unavailable', function()
     missingPedSource = 3
-    fireNet('qbchat:send', 3, 'no coordinates')
+    fireNet('kora_chat:send', 3, 'no coordinates')
     missingPedSource = nil
     local sends = {}
     for _, event in ipairs(clientEvents) do
-        if event.name == 'qbchat:message' and event[1].message == 'no coordinates' then sends[event.target] = true end
+        if event.name == 'kora_chat:message' and event[1].message == 'no coordinates' then sends[event.target] = true end
     end
     H.truthy(sends[3])
     H.falsy(sends[1])
@@ -195,21 +195,21 @@ end)
 
 H.test('message rate limiting rejects a rapid repeat', function()
     local before = #clientEvents
-    fireNet('qbchat:send', 1, 'too fast')
+    fireNet('kora_chat:send', 1, 'too fast')
     H.equal(#clientEvents, before)
     H.equal(notified[#notified].payload.message, Config.chatWarnings.rateLimited)
     local warned = #notified
-    fireNet('qbchat:send', 1, 'too fast again')
+    fireNet('kora_chat:send', 1, 'too fast again')
     H.equal(#notified, warned) -- warning itself is throttled
     clock = clock + Config.chat.minimumMessageInterval
-    fireNet('qbchat:send', 1, 'allowed now')
-    H.truthy(latest('qbchat:message'))
+    fireNet('kora_chat:send', 1, 'allowed now')
+    H.truthy(latest('kora_chat:message'))
 end)
 
 H.test('/me is local, character-named, and marked for overhead drawing', function()
     clock = clock + Config.chat.minimumMessageInterval
     commands.me(1, { 'waves' }, 'me waves at everyone')
-    local event = latest('qbchat:message')
+    local event = latest('kora_chat:message')
     H.equal(event[1].type, 'me')
     H.equal(event[1].author, 'Character One')
     H.truthy(event[1].overhead)
@@ -219,7 +219,7 @@ end)
 H.test('/ooc is global and uses the account identity', function()
     clock = clock + Config.chat.minimumMessageInterval
     commands.ooc(1, { 'hello' }, 'ooc hello world')
-    local event = latest('qbchat:message')
+    local event = latest('kora_chat:message')
     H.equal(event.target, -1)
     H.equal(event[1].author, 'Account One')
     H.equal(event[1].type, 'ooc')
@@ -228,7 +228,7 @@ end)
 H.test('over-limit messages are rejected with a warning by default', function()
     clock = clock + Config.chat.minimumMessageInterval
     local before, warned = #clientEvents, #notified
-    fireNet('qbchat:send', 1, string.rep('x', 450))
+    fireNet('kora_chat:send', 1, string.rep('x', 450))
     H.equal(#clientEvents, before)
     H.equal(#notified, warned + 1)
     H.truthy(notified[#notified].payload.message:find(tostring(Config.chat.maxMessageLength), 1, true))
@@ -238,10 +238,10 @@ H.test('player messages are truncated to the configured character limit when con
     clock = clock + Config.chatWarnings.interval
     Config.chatWarnings.overLimitAction = 'truncate'
     local warned = #notified
-    fireNet('qbchat:send', 1, string.rep('x', 450))
+    fireNet('kora_chat:send', 1, string.rep('x', 450))
     Config.chatWarnings.overLimitAction = 'reject'
     H.equal(#notified, warned + 1)
-    H.equal(utf8.len(latest('qbchat:message')[1].message), Config.chat.maxMessageLength)
+    H.equal(utf8.len(latest('kora_chat:message')[1].message), Config.chat.maxMessageLength)
 end)
 
 H.test('custom type exports register commands and direct sends', function()
@@ -252,7 +252,7 @@ H.test('custom type exports register commands and direct sends', function()
     invokingResource = nil
     H.truthy(commands.radio)
     H.truthy(ownExports.sendMessage(-1, 'radio', 'respond', { author = 'Dispatch' }))
-    local event = latest('qbchat:message')
+    local event = latest('kora_chat:message')
     H.equal(event[1].author, 'Dispatch')
     H.equal(event[1].type, 'radio')
     invokingResource = 'radio_resource'
@@ -271,13 +271,13 @@ H.test('custom types are removed when their owning resource stops', function()
 
     TriggerEvent('onResourceStop', 'temporary_messages')
     H.falsy(commands.temporary)
-    H.equal(latest('qbchat:typeRemoved')[1], 'temporary')
+    H.equal(latest('kora_chat:typeRemoved')[1], 'temporary')
 end)
 
 H.test('direct sends validate target lists and provide a server identity fallback', function()
     H.falsy(pcall(ownExports.sendMessage, { 1, 'invalid' }, 'say', 'bad targets'))
     H.truthy(ownExports.sendMessage({ 1, 2 }, 'say', 'server notice'))
-    local event = latest('qbchat:message')
+    local event = latest('kora_chat:message')
     H.equal(event[1].author, 'Local')
     H.equal(event.target, 2)
 end)
@@ -317,7 +317,7 @@ H.test('stock message hooks can merge params, replace the default template, and 
     invokingResource = nil
 
     ownExports.sendMessage(1, 'say', 'original')
-    local message = latest('qbchat:message')[1]
+    local message = latest('kora_chat:message')[1]
     H.equal(message.author, 'Hooked')
     H.equal(message.message, 'changed')
     H.equal(message.template, '<strong>@default</strong>')
@@ -346,7 +346,7 @@ end)
 local function messageTargets(message)
     local targets = {}
     for _, event in ipairs(clientEvents) do
-        if event.name == 'qbchat:message' and event[1].message == message then
+        if event.name == 'kora_chat:message' and event[1].message == message then
             targets[event.target] = (targets[event.target] or 0) + 1
         end
     end
@@ -359,7 +359,7 @@ H.test('all local entry paths exclude nearby players in another bucket', functio
     aliasExports.registerMode({ name = 'room', displayName = 'Room', cb = function() end })
     invokingResource = nil
     local entries = {
-        function(message) fireNet('qbchat:send', 1, message) end,
+        function(message) fireNet('kora_chat:send', 1, message) end,
         function(message) fireNet('_chat:messageEntered', 1, 'ignored', {}, message) end,
         function(message) commands.say(1, {}, 'say ' .. message) end,
         function(message) commands.me(1, {}, 'me ' .. message) end,
@@ -386,11 +386,11 @@ end)
 H.test('local routing uses current buckets after players move between instances', function()
     buckets = { [1] = 42, [2] = 99, [3] = 99 }
     clock = clock + Config.chat.minimumMessageInterval
-    fireNet('qbchat:send', 1, 'before instance change')
+    fireNet('kora_chat:send', 1, 'before instance change')
     H.falsy(messageTargets('before instance change')[2])
     buckets[2] = 42
     clock = clock + Config.chat.minimumMessageInterval
-    fireNet('qbchat:send', 1, 'after instance change')
+    fireNet('kora_chat:send', 1, 'after instance change')
     H.equal(messageTargets('after instance change')[2], 1)
     buckets = {}
 end)
@@ -415,7 +415,7 @@ H.test('global, explicit, hook and mode routing retain cross-bucket delivery', f
     aliasExports.registerMessageHook(function(_, _, hookRef) hookRef.setRouting({ 2 }) end)
     invokingResource = nil
     clock = clock + Config.chat.minimumMessageInterval
-    fireNet('qbchat:send', 1, 'hook override')
+    fireNet('kora_chat:send', 1, 'hook override')
     H.equal(messageTargets('hook override')[2], 1)
     H.falsy(messageTargets('hook override')[1])
     TriggerEvent('onResourceStop', 'routing_hook_probe')
@@ -432,18 +432,18 @@ H.test('global, explicit, hook and mode routing retain cross-bucket delivery', f
 end)
 
 H.test('dynamic suggestion callback delegates and rate limits safely', function()
-    local result = callbacks['qbchat:commandSuggestions'](1, 'giveitem', 1, 'wa', { 'wa' })
+    local result = callbacks['kora_chat:commandSuggestions'](1, 'giveitem', 1, 'wa', { 'wa' })
     H.equal(result[1].value, 'giveitem-value')
-    H.equal(#callbacks['qbchat:commandSuggestions'](1, string.rep('x', 65), 1, '', {}), 0)
-    H.equal(#callbacks['qbchat:commandSuggestions'](1, 'giveitem', 0, '', {}), 0)
+    H.equal(#callbacks['kora_chat:commandSuggestions'](1, string.rep('x', 65), 1, '', {}), 0)
+    H.equal(#callbacks['kora_chat:commandSuggestions'](1, 'giveitem', 0, '', {}), 0)
 
     for _ = 2, Config.chat.suggestionRequestsPerSecond do
-        H.truthy(callbacks['qbchat:commandSuggestions'](1, 'giveitem', 1, '', {})[1])
+        H.truthy(callbacks['kora_chat:commandSuggestions'](1, 'giveitem', 1, '', {})[1])
     end
-    H.equal(#callbacks['qbchat:commandSuggestions'](1, 'giveitem', 1, '', {}), 0)
+    H.equal(#callbacks['kora_chat:commandSuggestions'](1, 'giveitem', 1, '', {}), 0)
 
     clock = clock + 1000
-    H.truthy(callbacks['qbchat:commandSuggestions'](1, 'giveitem', 1, '', {})[1])
+    H.truthy(callbacks['kora_chat:commandSuggestions'](1, 'giveitem', 1, '', {})[1])
 end)
 
 H.report('server')

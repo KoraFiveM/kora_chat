@@ -157,7 +157,7 @@ local function sendTargets(targets, payload)
     if type(targets) ~= 'table' then targets = { targets } end
     for _, rawTarget in ipairs(targets) do
         local target = tonumber(rawTarget)
-        if target then TriggerClientEvent('qbchat:message', target, payload) end
+        if target then TriggerClientEvent('kora_chat:message', target, payload) end
     end
 end
 
@@ -234,12 +234,12 @@ local function dispatchMessage(source, typeName, rawMessage, options)
 
     for _, hook in pairs(messageHooks) do
         local ok, err = pcall(hook.fn, source, state.payload, hookRef)
-        if not ok then print(('^3[qbchat]^7 message hook errored: %s'):format(tostring(err))) end
+        if not ok then print(('^3[kora_chat]^7 message hook errored: %s'):format(tostring(err))) end
     end
 
     if definition.modeCallback then
         local ok, err = pcall(definition.modeCallback, source, state.payload, hookRef)
-        if not ok then print(('^3[qbchat]^7 mode callback for %s errored: %s'):format(typeName, tostring(err))) end
+        if not ok then print(('^3[kora_chat]^7 mode callback for %s errored: %s'):format(typeName, tostring(err))) end
     end
 
     if state.cancelled then return false, 'cancelled' end
@@ -304,7 +304,7 @@ local function registerMessageType(name, definition, explicitOwner)
         })
     end
 
-    TriggerClientEvent('qbchat:typeAdded', -1, publicType(name, normalized))
+    TriggerClientEvent('kora_chat:typeAdded', -1, publicType(name, normalized))
     return true
 end
 
@@ -321,7 +321,7 @@ removeMessageType = function(name)
         registeredModes[name] = nil
         TriggerClientEvent('chat:removeMode', -1, { name = name })
     end
-    TriggerClientEvent('qbchat:typeRemoved', -1, name)
+    TriggerClientEvent('kora_chat:typeRemoved', -1, name)
     return true
 end
 
@@ -449,7 +449,7 @@ Kora.compat.provideExport('chat', 'addMessage', addCompatMessage)
 Kora.compat.provideExport('chat', 'registerMessageHook', registerMessageHook)
 Kora.compat.provideExport('chat', 'registerMode', registerMode)
 
-RegisterNetEvent('qbchat:send', function(message)
+RegisterNetEvent('kora_chat:send', function(message)
     dispatchMessage(source, 'say', message)
 end)
 
@@ -463,7 +463,7 @@ RegisterNetEvent('chat:init', function()
     Kora.commands.refresh(src)
     local types = {}
     for name, definition in pairs(messageTypes) do types[#types + 1] = publicType(name, definition) end
-    TriggerClientEvent('qbchat:types', src, types)
+    TriggerClientEvent('kora_chat:types', src, types)
 end)
 
 -- Register the standard server-side event names so legacy resources can rely
@@ -487,7 +487,7 @@ RegisterCommand('say', function(source, _, raw)
     end
 end, false)
 
-Kora.callback.register('qbchat:commandSuggestions', function(source, command, argumentIndex, query, parsedArgs)
+Kora.callback.register('kora_chat:commandSuggestions', function(source, command, argumentIndex, query, parsedArgs)
     if type(command) ~= 'string' or #command > 64 or type(argumentIndex) ~= 'number'
         or type(query) ~= 'string' or #query > 128 or type(parsedArgs) ~= 'table' or #parsedArgs > 16 then
         return {}

@@ -5,7 +5,7 @@ local overhead = {}
 local overheadThreadRunning = false
 local removedSuggestions = {}
 local inputLayout = { x = 0, y = 0, scale = 1 }
-local LOGIN_STATE = 'qbcore:loggedIn'
+local LOGIN_STATE = 'kora_core:loggedIn'
 -- This is replicated by kora_core and survives a kora_chat restart, unlike the
 -- legacy load/unload events.  A missing state means character select/loading,
 -- where chat must remain unavailable.
@@ -40,10 +40,10 @@ local function setInputLayout(layout)
         end
     end
 
-    if nuiReady then send('qbchat:inputOffset', inputLayout) end
+    if nuiReady then send('kora_chat:inputOffset', inputLayout) end
 end
 
-AddEventHandler('qbchat:setInputLayout', setInputLayout)
+AddEventHandler('kora_chat:setInputLayout', setInputLayout)
 
 local editing = false
 
@@ -81,16 +81,16 @@ local function setPrefs(settings)
         opacity = opacity and opacity == opacity and math.max(20, math.min(100, math.floor(opacity + 0.5))) or defaultOpacity(),
         feedWhenClosed = settings.feedWhenClosed ~= false,
     }
-    if nuiReady then send('qbchat:prefs', prefs) end
+    if nuiReady then send('kora_chat:prefs', prefs) end
 end
 
 -- Registration with the /ui editor (kora_hud). Optional: without kora_hud, or
 -- with Config.chat.playerSettings = false, the chat behaves as configured and
--- the legacy getLayout / qbchat:setInputLayout path above still applies.
+-- the legacy getLayout / kora_chat:setInputLayout path above still applies.
 local UI_ID = 'chatInput'
 -- The editor box is the input at layoutOrigin, in the shared 1920x1080 root
 -- space. The page measures the real box and default spot once it is ready
--- (qbchat:geometry below); this estimate only covers the first moment.
+-- (kora_chat:geometry below); this estimate only covers the first moment.
 local function estimatedGeometry()
     local origin = type(Config.chat.layoutOrigin) == 'table' and Config.chat.layoutOrigin or {}
     local position = type(Config.chat.position) == 'table' and Config.chat.position or {}
@@ -178,7 +178,7 @@ local function closeInput()
     -- Closing is intentionally idempotent. The NUI and this client can get
     -- out of sync after a focus hand-off or a restart, so a stale `false`
     -- flag must never leave the composer rendered or keyboard input captured.
-    send('qbchat:close', {})
+    send('kora_chat:close', {})
 end
 
 local function setChatEnabled(enabled)
@@ -199,7 +199,7 @@ AddEventHandler('kora_hud:ui:editing', function(active)
         pendingOpen = false
         if inputOpen then closeInput() end
     end
-    if nuiReady then send('qbchat:editing', editing) end
+    if nuiReady then send('kora_chat:editing', editing) end
 end)
 
 local function openInput()
@@ -213,7 +213,7 @@ local function openInput()
     end
 
     inputOpen = true
-    send('qbchat:open', {})
+    send('kora_chat:open', {})
     SetNuiFocus(true, false)
 end
 
@@ -232,7 +232,7 @@ end
 -- Kora.keybind.add takes an options table; a bad call throws at file scope and
 -- aborts the NUI callback registrations below.
 Kora.keybind.add({
-    name = 'qbchat_open',
+    name = 'kora_chat_open',
     description = 'Open chat',
     defaultKey = Config.chat.defaultKey,
     onPressed = openInput,
@@ -241,14 +241,14 @@ Kora.keybind.add({
 local function addMessage(message)
     if type(message) == 'string' then message = { args = { message } } end
     if type(message) ~= 'table' then return end
-    send('qbchat:message', message)
+    send('kora_chat:message', message)
 end
 
 local function addSuggestion(name, help, params)
     if type(name) ~= 'string' then return end
     local key = name:sub(1, 1) == '/' and name or ('/' .. name)
     removedSuggestions[key:lower()] = nil
-    send('qbchat:suggestionAdd', { name = name, help = help or '', params = params or {} })
+    send('kora_chat:suggestionAdd', { name = name, help = help or '', params = params or {} })
 end
 
 exports('addMessage', addMessage)
@@ -273,28 +273,28 @@ RegisterNetEvent('chat:removeSuggestion', function(name)
     if type(name) ~= 'string' then return end
     local key = name:sub(1, 1) == '/' and name or ('/' .. name)
     removedSuggestions[key:lower()] = true
-    send('qbchat:suggestionRemove', name)
+    send('kora_chat:suggestionRemove', name)
 end)
 RegisterNetEvent('chat:clear', function()
-    send('qbchat:clear', {})
+    send('kora_chat:clear', {})
 end)
 RegisterNetEvent('chat:addTemplate', function(id, template)
-    send('qbchat:templateAdd', { id = id, template = template })
+    send('kora_chat:templateAdd', { id = id, template = template })
 end)
 RegisterNetEvent('chat:addMode', function(mode)
-    send('qbchat:typeAdd', mode)
+    send('kora_chat:typeAdd', mode)
 end)
 RegisterNetEvent('chat:removeMode', function(name)
-    send('qbchat:typeRemove', type(name) == 'table' and name.name or name)
+    send('kora_chat:typeRemove', type(name) == 'table' and name.name or name)
 end)
-RegisterNetEvent('qbchat:typeAdded', function(messageType)
-    send('qbchat:typeAdd', messageType)
+RegisterNetEvent('kora_chat:typeAdded', function(messageType)
+    send('kora_chat:typeAdd', messageType)
 end)
-RegisterNetEvent('qbchat:typeRemoved', function(name)
-    send('qbchat:typeRemove', name)
+RegisterNetEvent('kora_chat:typeRemoved', function(name)
+    send('kora_chat:typeRemove', name)
 end)
-RegisterNetEvent('qbchat:types', function(types)
-    send('qbchat:types', types)
+RegisterNetEvent('kora_chat:types', function(types)
+    send('kora_chat:types', types)
 end)
 
 --- Overhead /me text: the "* " only when Config.chat.showActionAsterisk is on, the author
@@ -435,7 +435,7 @@ local function startOverheadThread()
     end)
 end
 
-RegisterNetEvent('qbchat:message', function(payload)
+RegisterNetEvent('kora_chat:message', function(payload)
     if type(payload) ~= 'table' then return end
     addMessage(payload)
 
@@ -459,12 +459,12 @@ local function refreshNativeCommands()
         local name = command.name
         local suggestionName = type(name) == 'string' and ('/' .. name) or nil
         if type(name) == 'string' and name ~= '' and name:sub(1, 1) ~= '+' and name:sub(1, 1) ~= '-'
-            and name ~= 'qbchat_open' and not removedSuggestions[suggestionName:lower()]
+            and name ~= 'kora_chat_open' and not removedSuggestions[suggestionName:lower()]
             and IsAceAllowed(('command.%s'):format(name)) then
             suggestions[#suggestions + 1] = { name = suggestionName, help = '', params = {} }
         end
     end
-    send('qbchat:suggestions', suggestions)
+    send('kora_chat:suggestions', suggestions)
 end
 
 local function clearChatCommandName()
@@ -477,28 +477,28 @@ end
 local clearChatName = clearChatCommandName()
 if clearChatName then
     RegisterCommand(clearChatName, function()
-        send('qbchat:clearMessages', {})
+        send('kora_chat:clearMessages', {})
     end, false)
 end
 
-RegisterNUICallback('qbchat:ready', function(_, cb)
+RegisterNUICallback('kora_chat:ready', function(_, cb)
     nuiReady = true
     cb({ ok = true })
 
-    QBTheme.refresh()
+    KoraTheme.refresh()
     -- The input caps text at maxMessageLength; allow one extra character so an
-    -- over-limit message reaches qbchat:submit and is rejected/warned instead of
+    -- over-limit message reaches kora_chat:submit and is rejected/warned instead of
     -- being silently cut in the UI.
     local uiConfig = {}
     for key, value in pairs(Config.chat) do uiConfig[key] = value end
     uiConfig.maxMessageLength = Config.chat.maxMessageLength + 1
-    send('qbchat:init', {
+    send('kora_chat:init', {
         config = uiConfig,
     })
     loadHudInputLayout()
-    send('qbchat:inputOffset', inputLayout)
-    send('qbchat:prefs', prefs)
-    send('qbchat:editing', editing)
+    send('kora_chat:inputOffset', inputLayout)
+    send('kora_chat:prefs', prefs)
+    send('kora_chat:editing', editing)
     registerWithEditor()
     refreshNativeCommands()
     if clearChatName then addSuggestion(clearChatName, 'Clear your own chat history', {}) end
@@ -510,7 +510,7 @@ RegisterNUICallback('qbchat:ready', function(_, cb)
     end
 end)
 
-RegisterNUICallback('qbchat:submit', function(data, cb)
+RegisterNUICallback('kora_chat:submit', function(data, cb)
     closeInput()
     cb({ ok = true })
     if not chatEnabled then return end
@@ -526,15 +526,15 @@ RegisterNUICallback('qbchat:submit', function(data, cb)
         local command = message:sub(2)
         if command ~= '' then ExecuteCommand(command) end
     else
-        TriggerServerEvent('qbchat:send', message)
+        TriggerServerEvent('kora_chat:send', message)
     end
 end)
 
-RegisterNUICallback('qbchat:suggest', function(data, cb)
+RegisterNUICallback('kora_chat:suggest', function(data, cb)
     if not chatEnabled then cb({}); return end
     if type(data) ~= 'table' then cb({}); return end
     local result = Kora.callback.trigger(
-        'qbchat:commandSuggestions',
+        'kora_chat:commandSuggestions',
         data.command,
         data.argumentIndex,
         data.query,
@@ -547,7 +547,7 @@ end)
 -- fractions), so the /ui editor box sits exactly on the chat at this
 -- resolution. Sent on ready and after a resize; capped to 2 per second.
 local lastGeometryAt = 0
-RegisterNUICallback('qbchat:geometry', function(data, cb)
+RegisterNUICallback('kora_chat:geometry', function(data, cb)
     cb({ ok = true })
     if type(data) ~= 'table' or type(data.rect) ~= 'table' or type(data.defaultOffset) ~= 'table' then return end
     local now = GetGameTimer()

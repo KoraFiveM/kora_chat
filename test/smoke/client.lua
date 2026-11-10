@@ -27,7 +27,7 @@ _G.ExecuteCommand = function(command) executed[#executed + 1] = command end
 local registeredCommands = {}
 _G.RegisterCommand = function(name, cb) registeredCommands[name] = cb end
 _G.GetRegisteredCommands = function()
-    return { { name = 'help' }, { name = '+qbchat_open' }, { name = '-qbchat_open' } }
+    return { { name = 'help' }, { name = '+kora_chat_open' }, { name = '-kora_chat_open' } }
 end
 _G.IsAceAllowed = function() return true end
 _G.GetCurrentResourceName = function() return 'kora_chat' end
@@ -45,14 +45,14 @@ _G.CreateThread = function(fn)
     local ok, err = coroutine.resume(thread)
     if not ok then error(err) end
 end
-_G.LocalPlayer = { state = { ['qbcore:loggedIn'] = true } }
+_G.LocalPlayer = { state = { ['kora_core:loggedIn'] = true } }
 _G.AddStateBagChangeHandler = function(key, bag, cb)
     stateBagHandlers[#stateBagHandlers + 1] = { key = key, bag = bag, callback = cb }
 end
 
 local ownExports = {}
 _G.exports = setmetatable({}, { __call = function(_, name, fn) ownExports[name] = fn end })
-_G.QBTheme = { refresh = function() themeRefreshes = themeRefreshes + 1 end }
+_G.KoraTheme = { refresh = function() themeRefreshes = themeRefreshes + 1 end }
 
 local drawCalls = {}
 local notified = {}
@@ -97,16 +97,16 @@ local function latestAction(action)
 end
 
 local function setLoggedIn(value)
-    LocalPlayer.state['qbcore:loggedIn'] = value
+    LocalPlayer.state['kora_core:loggedIn'] = value
     for _, handler in ipairs(stateBagHandlers) do
-        if handler.key == 'qbcore:loggedIn' then
-            handler.callback('player:17', 'qbcore:loggedIn', value)
+        if handler.key == 'kora_core:loggedIn' then
+            handler.callback('player:17', 'kora_core:loggedIn', value)
         end
     end
 end
 
 H.test('T is registered through kora_lib without control polling', function()
-    H.equal(keybind.name, 'qbchat_open')
+    H.equal(keybind.name, 'kora_chat_open')
     H.equal(keybind.key, 'T')
     local file = assert(io.open(root .. 'client/main.lua', 'r'))
     local sourceText = file:read('*a')
@@ -115,23 +115,23 @@ H.test('T is registered through kora_lib without control polling', function()
     H.falsy(sourceText:find('IsControlJustPressed', 1, true))
 end)
 
-H.test('ready handshake refreshes qbtheme/config and completes a pending open', function()
+H.test('ready handshake refreshes kora_theme/config and completes a pending open', function()
     keybind.handler()
     H.equal(#focusCalls, 0)
-    nuiCallbacks['qbchat:ready']({}, function() end)
+    nuiCallbacks['kora_chat:ready']({}, function() end)
     H.equal(focusCalls[#focusCalls][1], true)
     H.equal(themeRefreshes, 1)
-    H.falsy(latestAction('qbchat:init').data.theme)
-    H.equal(latestAction('qbchat:init').data.config.historyHeight, Config.chat.historyHeight)
+    H.falsy(latestAction('kora_chat:init').data.theme)
+    H.equal(latestAction('kora_chat:init').data.config.historyHeight, Config.chat.historyHeight)
     H.truthy(Config.chat.historyHeight, 'history height is a documented option')
-    H.equal(latestAction('qbchat:init').data.config.historyPlacement, 'auto')
-    H.equal(latestAction('qbchat:init').data.config.layoutOrigin.y, 16)
+    H.equal(latestAction('kora_chat:init').data.config.historyPlacement, 'auto')
+    H.equal(latestAction('kora_chat:init').data.config.layoutOrigin.y, 16)
     H.equal(serverEvents[#serverEvents].name, 'chat:init')
-    H.equal(latestAction('qbchat:suggestions').data[1].name, '/help')
+    H.equal(latestAction('kora_chat:suggestions').data[1].name, '/help')
 end)
 
 H.test('chat input is enabled only while a character is logged in', function()
-    nuiCallbacks['qbchat:submit']({ cancelled = true }, function() end)
+    nuiCallbacks['kora_chat:submit']({ cancelled = true }, function() end)
     setLoggedIn(false)
     local before = #focusCalls
     keybind.handler()
@@ -150,11 +150,11 @@ H.test('logout force-closes a desynchronized composer', function()
     -- A prior NUI submit can clear Lua's state before the browser receives
     -- its close event. Logging out must still release focus and tell that
     -- stale browser frame to hide.
-    nuiCallbacks['qbchat:submit']({ cancelled = true }, function() end)
+    nuiCallbacks['kora_chat:submit']({ cancelled = true }, function() end)
     local focusBefore = #focusCalls
     setLoggedIn(false)
     H.equal(focusCalls[focusBefore + 1][1], false)
-    H.equal(latestAction('qbchat:close').action, 'qbchat:close')
+    H.equal(latestAction('kora_chat:close').action, 'kora_chat:close')
     setLoggedIn(true)
 end)
 
@@ -162,14 +162,14 @@ H.test('the HUD layout event updates and clamps the chat input layout', function
     -- The composer is in kora_chat's NUI, but /hudlayout persists its position
     -- in kora_hud. This local event is the intentionally small bridge between
     -- those two resource-owned frames.
-    fire('qbchat:setInputLayout', { x = 2, y = -2, scale = 2 })
-    local layout = latestAction('qbchat:inputOffset').data
+    fire('kora_chat:setInputLayout', { x = 2, y = -2, scale = 2 })
+    local layout = latestAction('kora_chat:inputOffset').data
     H.equal(layout.x, 0.95)
     H.equal(layout.y, -0.95)
     H.equal(layout.scale, 1.5)
 
-    fire('qbchat:setInputLayout', { x = 'bad', y = 0 })
-    layout = latestAction('qbchat:inputOffset').data
+    fire('kora_chat:setInputLayout', { x = 'bad', y = 0 })
+    layout = latestAction('kora_chat:inputOffset').data
     H.equal(layout.x, 0)
     H.equal(layout.y, 0)
     H.equal(layout.scale, 1)
@@ -177,15 +177,15 @@ end)
 
 H.test('/clearchat clears only the local feed and is suggested on ready', function()
     H.truthy(registeredCommands.clearchat, 'command registered from Config.clearChat')
-    nuiCallbacks['qbchat:ready']({}, function() end)
-    local suggestion = latestAction('qbchat:suggestionAdd').data
+    nuiCallbacks['kora_chat:ready']({}, function() end)
+    local suggestion = latestAction('kora_chat:suggestionAdd').data
     H.equal(suggestion.name, 'clearchat')
     registeredCommands.clearchat()
-    H.equal(latestAction('qbchat:clearMessages').action, 'qbchat:clearMessages')
+    H.equal(latestAction('kora_chat:clearMessages').action, 'kora_chat:clearMessages')
 end)
 
 H.test('T does not steal focus from another active NUI', function()
-    nuiCallbacks['qbchat:submit']({ cancelled = true }, function() end)
+    nuiCallbacks['kora_chat:submit']({ cancelled = true }, function() end)
     otherNuiFocused = true
     local before = #focusCalls
     keybind.handler()
@@ -195,30 +195,30 @@ end)
 
 H.test('submit releases focus before routing slash and normal input', function()
     keybind.handler()
-    nuiCallbacks['qbchat:submit']({ message = '/help now' }, function() end)
+    nuiCallbacks['kora_chat:submit']({ message = '/help now' }, function() end)
     H.equal(focusCalls[#focusCalls][1], false)
     H.equal(executed[#executed], 'help now')
 
     keybind.handler()
-    nuiCallbacks['qbchat:submit']({ message = ' hello ' }, function() end)
-    H.equal(serverEvents[#serverEvents].name, 'qbchat:send')
+    nuiCallbacks['kora_chat:submit']({ message = ' hello ' }, function() end)
+    H.equal(serverEvents[#serverEvents].name, 'kora_chat:send')
     H.equal(serverEvents[#serverEvents][1], 'hello')
 end)
 
 H.test('submit rejects blanks and enforces the configured character limit', function()
     local before = #serverEvents
     keybind.handler()
-    nuiCallbacks['qbchat:submit']({ message = '   ' }, function() end)
+    nuiCallbacks['kora_chat:submit']({ message = '   ' }, function() end)
     H.equal(#serverEvents, before)
 
     keybind.handler()
-    nuiCallbacks['qbchat:submit']({ message = string.rep('x', 450) }, function() end)
+    nuiCallbacks['kora_chat:submit']({ message = string.rep('x', 450) }, function() end)
     H.equal(#serverEvents, before)
     H.truthy(notified[#notified].message:find(tostring(Config.chat.maxMessageLength), 1, true))
 
     Config.chatWarnings.overLimitAction = 'truncate'
     keybind.handler()
-    nuiCallbacks['qbchat:submit']({ message = string.rep('x', 450) }, function() end)
+    nuiCallbacks['kora_chat:submit']({ message = string.rep('x', 450) }, function() end)
     Config.chatWarnings.overLimitAction = 'reject'
     H.equal(#notified, 2)
     H.equal(utf8.len(serverEvents[#serverEvents][1]), Config.chat.maxMessageLength)
@@ -227,22 +227,22 @@ end)
 H.test('compatibility messages and suggestions reach the NUI', function()
     fire('chat:addMessage', { args = { 'System' } })
     fire('chat:addSuggestion', '/heal', 'Heal player', { { name = 'id' } })
-    H.truthy(latestAction('qbchat:message'))
-    H.equal(latestAction('qbchat:suggestionAdd').data.name, '/heal')
+    H.truthy(latestAction('kora_chat:message'))
+    H.equal(latestAction('kora_chat:suggestionAdd').data.name, '/heal')
 end)
 
 H.test('removed kora_lib suggestions are not resurrected by native command refresh', function()
     fire('chat:removeSuggestion', '/help')
     fire('onClientResourceStart', 'some_resource')
-    H.equal(#latestAction('qbchat:suggestions').data, 0)
+    H.equal(#latestAction('kora_chat:suggestions').data, 0)
 
     fire('chat:addSuggestion', '/help', 'Detailed help', {})
     fire('onClientResourceStart', 'some_resource')
-    H.equal(latestAction('qbchat:suggestions').data[1].name, '/help')
+    H.equal(latestAction('kora_chat:suggestions').data[1].name, '/help')
 end)
 
 H.test('/me overhead text starts only an activity-bound draw thread', function()
-    fire('qbchat:message', {
+    fire('kora_chat:message', {
         id = 'me:1', type = 'me', author = 'Character One', message = 'waves', source = 1,
         overhead = true, overheadDuration = 5000,
     })
@@ -257,7 +257,7 @@ end)
 H.test('/me overhead stacks only the three newest actions per player', function()
     local before = #drawCalls
     for index = 1, 4 do
-        fire('qbchat:message', {
+        fire('kora_chat:message', {
             id = 'stack:' .. index, type = 'me', author = 'Character One', message = 'action ' .. index,
             source = 1, overhead = true, overheadDuration = 5000,
         })
@@ -277,7 +277,7 @@ end)
 
 H.test('dynamic NUI suggestions use the kora_lib callback result', function()
     local response
-    nuiCallbacks['qbchat:suggest']({ command = 'giveitem', argumentIndex = 1, query = 'wa', args = { 'wa' } }, function(value) response = value end)
+    nuiCallbacks['kora_chat:suggest']({ command = 'giveitem', argumentIndex = 1, query = 'wa', args = { 'wa' } }, function(value) response = value end)
     H.equal(response[1].value, 'water')
 end)
 
@@ -289,39 +289,39 @@ end)
 
 H.test('the /ui editor applies the chat layout and prefs, re-clamped', function()
     fire('kora_hud:ui:apply', 'kora_inventory', 'chatInput', { x = 0.5, y = 0.5, scale = 1, settings = {} })
-    local before = latestAction('qbchat:prefs')
+    local before = latestAction('kora_chat:prefs')
     fire('kora_hud:ui:apply', 'kora_chat', 'chatInput', {
         x = 3, y = -0.2, scale = 9, settings = { fadeSeconds = 99, opacity = 5, feedWhenClosed = false },
     })
-    local offset = latestAction('qbchat:inputOffset').data
+    local offset = latestAction('kora_chat:inputOffset').data
     H.equal(offset.x, 0.95, 'offset is clamped at the chat boundary')
     H.equal(offset.scale, 1.5, 'scale is clamped')
-    local prefs = latestAction('qbchat:prefs').data
+    local prefs = latestAction('kora_chat:prefs').data
     H.truthy(prefs ~= (before and before.data), 'prefs were sent')
     H.equal(prefs.fadeSeconds, 60, 'fade time is clamped')
     H.equal(prefs.opacity, 20, 'opacity is clamped')
     H.equal(prefs.feedWhenClosed, false, 'the toggle passes through')
     fire('kora_hud:ui:apply', 'kora_chat', 'chatInput', { x = 0, y = 0, scale = 1, settings = 'bad' })
-    H.equal(latestAction('qbchat:prefs').data.fadeSeconds, 8, 'bad settings fall back to the server defaults')
+    H.equal(latestAction('kora_chat:prefs').data.fadeSeconds, 8, 'bad settings fall back to the server defaults')
 end)
 
 H.test('opening /ui closes the composer and blocks opening it', function()
     keybind.handler()
     fire('kora_hud:ui:editing', true)
     H.equal(focusCalls[#focusCalls][1], false, 'focus is released for the editor')
-    H.equal(latestAction('qbchat:editing').data, true, 'the page shows its preview')
+    H.equal(latestAction('kora_chat:editing').data, true, 'the page shows its preview')
     local calls = #focusCalls
     keybind.handler()
     H.equal(#focusCalls, calls, 'T does nothing while the editor is open')
     fire('kora_hud:ui:editing', false)
-    H.equal(latestAction('qbchat:editing').data, false)
+    H.equal(latestAction('kora_chat:editing').data, false)
 end)
 
 H.test('measured geometry is validated and rate limited', function()
     local response
-    nuiCallbacks['qbchat:geometry']({ rect = { x = 'a' }, defaultOffset = {} }, function(value) response = value end)
+    nuiCallbacks['kora_chat:geometry']({ rect = { x = 'a' }, defaultOffset = {} }, function(value) response = value end)
     H.truthy(response.ok, 'always answered')
-    nuiCallbacks['qbchat:geometry']({ rect = { x = 0.01, y = 0.01, w = 0.25, h = 0.04 }, defaultOffset = { x = 0, y = 0.3 } }, function() end)
+    nuiCallbacks['kora_chat:geometry']({ rect = { x = 0.01, y = 0.01, w = 0.25, h = 0.04 }, defaultOffset = { x = 0, y = 0.3 } }, function() end)
 end)
 
 H.report('client')

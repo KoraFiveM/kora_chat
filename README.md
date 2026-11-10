@@ -62,7 +62,7 @@ Message type definitions support:
 
 - `label`, `help`, and optional `command` (`false` disables the slash command)
 - `scope = 'local' | 'global'` and an optional local `range`
-- `identity = 'character' | 'account'` and a kora_lib/qbcore `permission`
+- `identity = 'character' | 'account'` and a kora_lib/kora_core `permission`
 - `icon = 'message' | 'action' | 'globe' | 'radio' | 'shield' | 'info'`
 - optional `color = '#RRGGBB'`, `overhead`, and `overheadDuration`
 
