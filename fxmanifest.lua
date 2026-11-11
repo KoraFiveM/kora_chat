@@ -4,7 +4,7 @@ lua54 'yes'
 
 name 'kora_chat'
 author 'Jamie'
-version '1.0.0'
+version '0.1.0'
 description 'Event-driven, kora_theme-styled chat with proximity roleplay messages and command completion'
 
 provide 'chat'
