@@ -1,0 +1,227 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    overflow: hidden;
+    background: transparent !important;
+    pointer-events: none;
+  }
+}
+
+/* The shell is exactly the input box (same size as kora_hud's "Chat input"
+   proxy); App.tsx places its top-left from lib/layout.ts. */
+.chat-shell {
+  position: absolute;
+  top: 0;
+  left: 16px;
+  width: min(480px, 38vw);
+  /* Per-player /ui settings (kora_hud): background opacity of rows and the
+     input, and how long one message takes to fade out. */
+  --chat-surface-alpha: 0.94;
+  --chat-fade-duration: 600ms;
+}
+
+/* The history is out of flow and has a fixed height from lib/layout.ts, never
+   sized by its content, so neither it nor the input can move as messages
+   arrive. App.tsx pins it just above (bottom) or below (top) the input. */
+.message-feed {
+  position: absolute;
+  left: 0;
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+  padding: 2px 4px 8px 2px;
+  transition: opacity 150ms ease-in;
+}
+
+/* Above the input the newest message sits next to it at the bottom. Done
+   without flex-end, which would make the oldest rows unreachable once the
+   content overflows and scrolls. Below the input rows simply start at the top. */
+.message-feed.above > :first-child { margin-top: auto; }
+
+.message-feed.hidden { opacity: 0; }
+.message-feed.visible { opacity: 1; }
+.message-feed.open { overflow-y: auto; pointer-events: auto; overscroll-behavior: contain; }
+
+/* Rectangular with slightly rounded corners, matching the input. */
+.message-row {
+  display: flex;
+  flex: none;
+  min-height: 42px;
+  gap: 10px;
+  border: 1px solid hsl(var(--border) / calc(0.9 * var(--chat-surface-alpha)));
+  border-left: 3px solid hsl(var(--primary));
+  border-radius: 6px;
+  background: hsl(var(--card) / var(--chat-surface-alpha));
+  padding: 8px 10px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / calc(28% * var(--chat-surface-alpha)));
+  transition: opacity var(--chat-fade-duration) ease-out;
+  animation: chat-row-in 120ms ease-out backwards;
+}
+
+/* Per-message fade (Config.chat.fadeMode = 'message'): an old row fades out
+   while chat is closed and comes back when it opens. */
+.message-row.faded { opacity: 0; }
+
+.message-row.compatibility { border-left-color: hsl(var(--border)); }
+.message-row.type-say { border-left-color: hsl(var(--border)); }
+.message-row.type-say .message-icon { background: hsl(var(--muted)); color: hsl(var(--muted-foreground)); }
+.message-row.type-ooc { border-left-color: hsl(var(--muted-foreground) / .55); }
+.message-row.type-ooc .message-icon { background: hsl(var(--muted)); color: hsl(var(--muted-foreground)); }
+.message-row.type-ooc .message-text { color: hsl(var(--muted-foreground)); }
+
+.message-icon {
+  display: flex;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: hsl(var(--brand-soft));
+  color: hsl(var(--foreground));
+}
+
+.message-copy { min-width: 0; flex: 1; }
+.message-meta { display: flex; align-items: baseline; gap: 7px; line-height: 16px; }
+.message-type { color: hsl(var(--foreground)); font-size: 11px; font-weight: 600; letter-spacing: .025em; }
+.message-author { overflow: hidden; color: hsl(var(--muted-foreground)); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.message-text { overflow-wrap: anywhere; color: hsl(var(--foreground)); font-size: 14px; line-height: 19px; }
+.message-text.action { font-style: italic; }
+.action-author { color: hsl(var(--primary)); font-weight: 600; }
+
+.composer {
+  position: relative;
+  pointer-events: auto;
+  animation: chat-composer-in 120ms ease-out backwards;
+}
+
+/* /ui editor stand-in for the composer: looks the same, takes no input. */
+.composer-preview { pointer-events: none; }
+.input-placeholder { flex: 1; padding: 0 10px; color: hsl(var(--muted-foreground)); font-size: 14px; }
+
+@keyframes chat-row-in { from { opacity: 0; transform: translateY(4px); } }
+@keyframes chat-composer-in { from { opacity: 0; transform: translateY(3px); } }
+
+/* Keeps the shell input-sized while chat is closed. */
+.composer-spacer { height: 48px; }
+
+.input-row {
+  display: flex;
+  height: 48px;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid hsl(var(--input));
+  border-radius: 6px;
+  background: hsl(var(--background) / calc(var(--chat-surface-alpha) + 0.04));
+  padding: 0 12px;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 42%);
+}
+
+.input-row:focus-within {
+  border-color: hsl(var(--brand-border));
+  box-shadow: 0 12px 32px rgb(0 0 0 / 42%);
+}
+
+.input-row > svg { flex: 0 0 auto; color: hsl(var(--muted-foreground)); }
+/* The text starts 10px in from the inner edge, the same as the placeholder,
+   and the field itself draws no box of its own: the row is the input. */
+.input-row input {
+  min-width: 0;
+  height: 100%;
+  flex: 1;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  background: transparent;
+  padding: 0 10px;
+  color: hsl(var(--foreground));
+  font: inherit;
+  font-size: 14px;
+}
+.input-row input::placeholder { color: hsl(var(--muted-foreground)); }
+
+/* kora_theme draws a global focus ring on every input. On the chat input that
+   ring was the rounded inner pill around the text; the focused state is shown
+   by the outer .input-row border (focus-within) instead. */
+.input-row input:focus,
+.input-row input:focus-visible {
+  border-color: transparent;
+  box-shadow: none;
+  outline: 0;
+}
+
+kbd {
+  border: 1px solid hsl(var(--border));
+  border-radius: 4px;
+  background: hsl(var(--surface-raised));
+  padding: 1px 5px;
+  color: hsl(var(--muted-foreground));
+  font: 500 10px/15px var(--font-mono, "SFMono-Regular", Consolas, "Liberation Mono", monospace);
+}
+
+.suggestion-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 100%;
+  max-height: 48vh;
+  overflow: hidden auto;
+  border: 1px solid hsl(var(--border));
+  border-radius: 10px;
+  background: hsl(var(--popover) / 0.98);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 42%);
+  padding: 4px;
+}
+
+.suggestion-panel.above-input {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
+.suggestion-row {
+  min-height: 42px;
+  border-left: 3px solid transparent;
+  border-radius: 6px;
+  padding: 6px 9px;
+}
+.suggestion-row.selected {
+  border-left-color: hsl(var(--primary));
+  background: hsl(var(--brand-soft));
+}
+.signature { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: 6px; }
+.command-name { color: hsl(var(--foreground)); font: 600 13px/18px var(--font-mono, "SFMono-Regular", Consolas, monospace); }
+.argument { color: hsl(var(--muted-foreground)); font: 500 12px/18px var(--font-mono, "SFMono-Regular", Consolas, monospace); }
+.argument.active { color: hsl(var(--foreground)); text-decoration: underline; text-decoration-color: hsl(var(--primary)); text-underline-offset: 3px; }
+.suggestion-help { overflow: hidden; margin-top: 1px; color: hsl(var(--muted-foreground)); font-size: 12px; line-height: 17px; text-overflow: ellipsis; white-space: nowrap; }
+.suggestion-state { padding: 10px; color: hsl(var(--muted-foreground)); font-size: 12px; text-align: center; }
+.suggestion-footer { display: flex; align-items: center; justify-content: flex-end; gap: 5px; border-top: 1px solid hsl(var(--border)); margin: 4px -4px -4px; padding: 6px 9px; color: hsl(var(--muted-foreground)); font-size: 10px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .message-feed, .message-row { transition: none; }
+  .message-row, .composer { animation: none; }
+}
+
+@media (max-width: 640px) {
+  .chat-shell { left: 8px !important; width: calc(100vw - 16px); }
+  .message-feed { padding-right: 0; }
+  .message-row { min-height: 36px; gap: 7px; border-radius: 6px; padding: 7px 8px; }
+  .message-icon { width: 21px; height: 21px; }.message-icon svg { width: 13px; height: 13px; }
+  .message-text { font-size: 13px; line-height: 17px; }.message-meta { gap: 5px; }
+  .composer-spacer { height: 44px; }
+  .input-row { height: 44px; gap: 7px; padding: 0 10px; }.input-row kbd { display: none; }
+  .suggestion-panel { max-height: 40vh; }.suggestion-help { white-space: normal; }
+}
+
+@media (max-height: 560px) {
+  .suggestion-panel { max-height: 32vh; }
+}
