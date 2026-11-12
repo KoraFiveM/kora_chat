@@ -1,11 +1,11 @@
 ---
 title: Features
-sidebar_position: 2
+sidebar_position: 6
 ---
 
 # Features
 
-- **Stock chat replacement** - `provide 'chat'` satisfies resources that depend on `chat`. The stock chat events and the common exports are implemented. See [Exports](./exports.md) and [Events](./events.md).
+- **Stock chat replacement** - `provide 'chat'` satisfies resources that depend on `chat`. The stock chat events and the common exports are implemented. See [Exports](./api/server-exports.md) and [Events](./events.md).
 - **Local chat** - text typed without a leading slash is sent to the server and routed as the `say` message type to players within `Config.chat.localRange` (default 20 metres) who are in the same routing bucket. The author is the character name from `kora_core`.
 - **`/me` actions** - the `me` type is local and also draws text above the sender's head for `Config.chat.overheadDuration` ms. Up to `Config.chat.overheadLimitPerPlayer` bubbles per player are stacked. Bubbles are only drawn for players within `localRange`.
 - **`/ooc`** - global, labelled with the account name (`GetPlayerName`) rather than the character name.
