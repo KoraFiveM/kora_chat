@@ -103,3 +103,5 @@ client `addMessage`/`addSuggestion` and server `addMessage`,
 `registerMessageHook`, and `registerMode` exports through both `kora_chat` and the
 provided `chat` identity. Compatibility templates are sanitized and external
 chat theme scripts/styles are intentionally unsupported.
+
+Full documentation: see [docs/](docs/index.md).
