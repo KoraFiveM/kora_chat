@@ -116,8 +116,8 @@ local function registerWithEditor()
     pcall(function()
         exports['kora_hud']:registerUiElement({
             id = UI_ID,
-            label = 'Chat',
-            group = 'Chat',
+            label = Kora.lang('ui.chat'),
+            group = Kora.lang('ui.chat'),
             rect = geometry.rect,
             defaultOffset = geometry.defaultOffset,
             origin = 'left top',
@@ -127,12 +127,12 @@ local function registerWithEditor()
             scaleMin = 0.75,
             scaleMax = 1.5,
             settings = {
-                { key = 'fadeSeconds', label = 'Fade messages after', type = 'range', min = 0, max = 60, step = 1,
-                  default = defaultFadeSeconds(), unit = 's', zeroLabel = 'Never',
-                  description = 'Older messages fade out while chat is closed. Opening chat shows them again.' },
-                { key = 'opacity', label = 'Background opacity', type = 'range', min = 20, max = 100, step = 5,
+                { key = 'fadeSeconds', label = Kora.lang('ui.fade_messages_after'), type = 'range', min = 0, max = 60, step = 1,
+                  default = defaultFadeSeconds(), unit = 's', zeroLabel = Kora.lang('ui.never'),
+                  description = Kora.lang('ui.fade_messages_description') },
+                { key = 'opacity', label = Kora.lang('ui.background_opacity'), type = 'range', min = 20, max = 100, step = 5,
                   default = defaultOpacity(), unit = '%' },
-                { key = 'feedWhenClosed', label = 'Show new messages while chat is closed', type = 'toggle', default = true },
+                { key = 'feedWhenClosed', label = Kora.lang('ui.show_messages_when_closed'), type = 'toggle', default = true },
             },
         })
     end)
@@ -233,7 +233,7 @@ end
 -- aborts the NUI callback registrations below.
 Kora.keybind.add({
     name = 'kora_chat_open',
-    description = 'Open chat',
+    description = Kora.lang('ui.open_chat'),
     defaultKey = Config.chat.defaultKey,
     onPressed = openInput,
 })

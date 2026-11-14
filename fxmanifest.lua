@@ -25,6 +25,7 @@ server_script 'server/main.lua'
 ui_page 'web/build/index.html'
 
 files {
+    'locales/*.lua',
     'web/build/index.html',
     'web/build/assets/**/*'
 }

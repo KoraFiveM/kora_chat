@@ -68,7 +68,7 @@ local function validateDefinition(name, definition)
     local normalized = {}
     normalized.label = definition.label or name
     assert(type(normalized.label) == 'string' and normalized.label ~= '', 'Message type label must be a non-empty string.')
-    normalized.help = type(definition.help) == 'string' and definition.help or ('Send a %s message'):format(normalized.label)
+    normalized.help = type(definition.help) == 'string' and definition.help or Kora.lang('command.send_message_as', normalized.label)
 
     if definition.command == false then
         normalized.command = false
@@ -116,13 +116,13 @@ end
 local function characterName(source)
     local name = exports.kora_core:getPlayerData(source, { 'name' })
     if type(name) == 'string' and name ~= '' then return name end
-    return GetPlayerName(source) or ('Player %d'):format(source)
+    return GetPlayerName(source) or Kora.lang('ui.player_number', source)
 end
 
 local function authorFor(source, definition)
-    if source == 0 then return definition.label or 'System' end
+    if source == 0 then return definition.label or Kora.lang('ui.system') end
     if definition.identity == 'account' then
-        return GetPlayerName(source) or ('Player %d'):format(source)
+        return GetPlayerName(source) or Kora.lang('ui.player_number', source)
     end
     return characterName(source)
 end
@@ -191,22 +191,22 @@ end
 local function dispatchMessage(source, typeName, rawMessage, options)
     local definition = messageTypes[typeName]
     local message, truncated = cleanMessage(rawMessage)
-    if not definition or not message then return false, 'invalid message' end
+    if not definition or not message then return false, Kora.lang('error.invalid_message') end
     options = options or {}
 
     if not options.trusted then
         local allowed = definition.checkPermission(source, definition.permission)
-        if not allowed then return false, 'permission denied' end
+        if not allowed then return false, Kora.lang('error.permission_denied') end
         if truncated then
             if Config.chatWarnings.overLimitAction == 'reject' then
                 warnPlayer(source, 'tooLong')
-                return false, 'message too long'
+                return false, Kora.lang('error.message_too_long')
             end
             warnPlayer(source, 'truncated')
         end
         if not rateAllowed(source) then
             warnPlayer(source, 'rateLimited')
-            return false, 'rate limited'
+            return false, Kora.lang('error.rate_limited')
         end
     end
 
@@ -285,7 +285,7 @@ local function registerMessageType(name, definition, explicitOwner)
         commandTypes[normalized.command] = name
         local commandName = normalized.command
         Kora.commands.add(commandName, normalized.help, {
-            { name = 'message', help = ('Message to send as %s'):format(normalized.label) },
+            { name = 'message', help = Kora.lang('command.send_message_as', normalized.label) },
         }, false, function(source, _, raw)
             -- argsRequired is off so an empty message gets chat's own wording instead of
             -- kora_lib's generic "Missing arguments" text; kora_lib still checks permission first.
@@ -410,7 +410,7 @@ local function registerMode(modeData)
     local modeName = modeData.name:lower()
     registerMessageType(modeName, {
         label = modeData.displayName,
-        help = ('Send a message in %s'):format(modeData.displayName),
+        help = Kora.lang('command.send_message_in', modeData.displayName),
         command = modeName,
         scope = modeData.isGlobal and 'global' or 'local',
         identity = 'account',
@@ -524,19 +524,19 @@ AddEventHandler('onResourceStop', function(resource)
 end)
 
 registerMessageType('say', {
-    label = 'Local', command = false, scope = 'local', range = Config.chat.localRange,
+    label = Kora.lang('ui.local_chat'), command = false, scope = 'local', range = Config.chat.localRange,
     identity = 'character', icon = 'message', permission = 'user',
 }, GetCurrentResourceName())
 
 registerMessageType('me', {
-    label = 'Action', help = 'Describe a nearby character action', command = 'me',
+    label = Kora.lang('ui.action'), help = Kora.lang('command.describe_action'), command = 'me',
     scope = 'local', range = Config.chat.localRange, identity = 'character',
     icon = 'action', permission = 'user', overhead = true,
     overheadDuration = math.min(30000, math.max(1, math.floor(tonumber(Config.chat.overheadDuration) or 5000))),
 }, GetCurrentResourceName())
 
 registerMessageType('ooc', {
-    label = 'OOC', help = 'Send a global out-of-character message', command = 'ooc',
+    label = Kora.lang('ui.ooc'), help = Kora.lang('command.send_ooc'), command = 'ooc',
     scope = 'global', identity = 'account', icon = 'globe', permission = 'user',
 }, GetCurrentResourceName())
 
