@@ -47,7 +47,20 @@ _G.exports = setmetatable({ kora_core = kora_core }, {
 
 local tracked = {}
 local notified = {}
+local logged = {}
+-- Kora.lang stand-in that resolves dotted keys from the resource's own en locale.
+local locale = dofile(root .. 'locales/en.lua')
+local function lang(key, ...)
+    local value = locale
+    for part in key:gmatch('[^.]+') do value = type(value) == 'table' and value[part] or nil end
+    if type(value) ~= 'string' then return key end
+    return select('#', ...) > 0 and value:format(...) or value
+end
 _G.Kora = {
+    lang = lang,
+    logging = setmetatable({}, { __index = function(_, level)
+        return function(event, message, fields) logged[#logged + 1] = { level = level, event = event, message = message, fields = fields }; return true end
+    end }),
     notify = { send = function(src, payload) notified[#notified + 1] = { src = src, payload = payload } end },
     compat = { provideExport = function(identity, name, fn)
         AddEventHandler(('__cfx_export_%s_%s'):format(identity, name), function(setCB) setCB(fn) end)
@@ -323,6 +336,20 @@ H.test('stock message hooks can merge params, replace the default template, and 
     H.equal(message.template, '<strong>@default</strong>')
     H.equal(message.params.channel, 'test')
     TriggerEvent('onResourceStop', 'hook_resource')
+end)
+
+H.test('a throwing message hook is logged through Kora.logging and does not stop delivery', function()
+    logged = {}
+    invokingResource = 'throwing_hook_resource'
+    aliasExports.registerMessageHook(function() error('hook exploded') end)
+    invokingResource = nil
+    ownExports.sendMessage(1, 'say', 'still delivered')
+    H.equal(latest('kora_chat:message')[1].message, 'still delivered')
+    H.equal(#logged, 1)
+    H.equal(logged[1].level, 'error')
+    H.equal(logged[1].event, 'hooks.message_hook_failed')
+    H.truthy(tostring(logged[1].fields.error):find('hook exploded', 1, true))
+    TriggerEvent('onResourceStop', 'throwing_hook_resource')
 end)
 
 H.test('stock modes become typed commands and announce lifecycle events', function()
