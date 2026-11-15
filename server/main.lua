@@ -234,12 +234,12 @@ local function dispatchMessage(source, typeName, rawMessage, options)
 
     for _, hook in pairs(messageHooks) do
         local ok, err = pcall(hook.fn, source, state.payload, hookRef)
-        if not ok then print(('^3[kora_chat]^7 message hook errored: %s'):format(tostring(err))) end
+        if not ok then Kora.logging.error('hooks.message_hook_failed', 'Message hook errored', { error = tostring(err) }) end
     end
 
     if definition.modeCallback then
         local ok, err = pcall(definition.modeCallback, source, state.payload, hookRef)
-        if not ok then print(('^3[kora_chat]^7 mode callback for %s errored: %s'):format(typeName, tostring(err))) end
+        if not ok then Kora.logging.error('hooks.mode_callback_failed', 'Mode callback errored', { mode = tostring(typeName), error = tostring(err) }) end
     end
 
     if state.cancelled then return false, 'cancelled' end

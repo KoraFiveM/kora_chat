@@ -11,4 +11,7 @@ for file in "$dir"/smoke/*.lua; do
     echo
 done
 
+echo "== no_raw_print =="
+(cd "$dir/.." && "${lua_bin:-lua}" test/no_raw_print.lua) || status=1
+
 exit "$status"
